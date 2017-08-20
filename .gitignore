@@ -1,0 +1,12 @@
+# todo check if lock and yaml is good to add
+.idea
+.packages
+android
+android.iml
+build
+flutter_charts_common_android.iml
+flutter_charts_common.iml
+ios
+pubspec.lock
+pubspec.yaml
+
