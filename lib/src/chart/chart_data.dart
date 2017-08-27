@@ -2,11 +2,11 @@ import 'dart:math' as math;
 
 class ChartData {
 
-  List<List<double>> dataRows;
+  List<List<double>> dataRows = new List();
 
-  List<String> xLabels;
+  List<String> xLabels = new List();
 
-  List<String> yLabels;
+  List<String> yLabels = new List();
 
   void validate() {
     for (List<double> list in dataRows) {
