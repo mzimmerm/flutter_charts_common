@@ -28,6 +28,7 @@ class ChartOptions {
 
   // X labels pad from extend.
   final double xLabelsPadTop = 2.0;
+  final double xLabelsPadLR = 2.0;
   final double xLabelsXOffsetHack = -15.0;
 
 }

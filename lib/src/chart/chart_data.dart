@@ -4,8 +4,17 @@ class ChartData {
 
   List<List<double>> dataRows = new List();
 
+  /// Labels on independent (X) axis.
+  ///
+  /// It is generally assumed labels are defined,
+  /// and their number is the same as number of points
+  /// in each row in [dataRows].
   List<String> xLabels = new List();
 
+  /// Labels on dependent (Y) axis.
+  ///
+  /// They may not be defined, in which case the
+  /// Y axis is likely not shown.
   List<String> yLabels = new List();
 
   void validate() {

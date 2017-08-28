@@ -69,7 +69,8 @@ class RandomChartData extends ChartData {
   void _generateXLabels() {
 
     List<String> xLabelsMonths =  [
-      'JAN','FEB','MAR','APR','JUN','JUL','AUG','SEP','OCT','NOV','DEC'
+      'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
+      'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'
     ];
 
     for ( var xIndex in new Iterable.generate(_numXLabels, (i) => i) ) {
