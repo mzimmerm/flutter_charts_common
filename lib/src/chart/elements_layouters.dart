@@ -16,7 +16,7 @@ import 'chart_options.dart';
 ///     for which we do not know any sizing needed for the Layouters,
 ///     until we call `TextPainter(text: textSpan).layout()`.
 ///   - [availableWidth], [xLabels], [chartOptions] is passed as arguments
-///   - [xLabelsHeight], [gridStepWidth] is calculated
+///   - [xLabelsContainerHeight], [gridStepWidth] is calculated
 ///   - depends on TextPainter
 ///     provided by LabelPainter.textPainterForLabel(String string)
 ///   - todo add iterations that allow layout size to be negotiated.
@@ -44,13 +44,12 @@ class XLabelsLayouter {
   double _spacing;
   ChartOptions _chartOptions;
 
-
   // ### calculated values
 
   /// Results of laying out the x axis labels, usabel by clients.
   List<XLabelLayouterOutput> outputs = new List();
 
-  double xLabelsHeight;
+  double xLabelsContainerHeight;
   double gridStepWidth;
 
   /// todo 0 document
@@ -91,7 +90,7 @@ class XLabelsLayouter {
       outputs.add(output);
     }
 
-    xLabelsHeight =
+    xLabelsContainerHeight =
         outputs.map((var output) => output.painter)
             .map((painting.TextPainter p) => p.size.height)
             .reduce(math.max);
@@ -99,7 +98,8 @@ class XLabelsLayouter {
 
 }
 
-/// A Wrapper of [XLabelsLayouter] members that can be iterated.
+/// A Wrapper of [XLabelsLayouter] members that can be used by clients
+/// to layout x labels container.
 
 /// All positions are relative in the container of x labels
 class XLabelLayouterOutput {

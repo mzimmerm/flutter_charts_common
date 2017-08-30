@@ -19,11 +19,9 @@ class ChartData {
 
   void validate() {
     for (List<double> list in dataRows) {
-      if (xLabels != null) {
-        if (list.length != xLabels.length) {
-          throw new StateError(" dataList.size() != xLabels.size()"
-              " [${list.length}] != [${xLabels.length}]. ");
-        }
+      if (xLabels != null && list.length != xLabels.length) {
+        throw new StateError(" dataList.size() != xLabels.size()"
+            " [${list.length}] != [${xLabels.length}]. ");
       }
     }
   }

@@ -22,14 +22,13 @@ class ChartOptions {
   final double gridTopExtendHeight = 6.0;
   // todo 1 - do not need right extend?
   final double gridBottomExtendHeight = 12.0;
-  final double gridLeftExtendWidth = 6.0;
+  // todo 1: forced by autolayout, for x labels to fit: final double gridLeftExtendWidth = 2.0;
 
-  final double gridStepWidth = 8.0;
+  final double gridStepWidth = 8.0; // todo 0 remove
 
   // X labels pad from extend.
   final double xLabelsPadTop = 2.0;
   final double xLabelsPadLR = 2.0;
-  final double xLabelsXOffsetHack = -15.0;
 
 }
 
