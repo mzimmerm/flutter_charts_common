@@ -75,3 +75,5 @@ export 'src/chart/chart_options.dart';
 export 'src/chart/elements_painters.dart';
 export 'src/chart/elements_layouters.dart';
 export 'src/layout.dart';
+export 'src/util/util.dart';
+

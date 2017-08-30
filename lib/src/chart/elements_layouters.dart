@@ -12,38 +12,44 @@ import 'chart_options.dart';
 /// Layout X labels.
 ///
 /// Note:
-///   - desired width is given from parent
-///   - desired height is calculated
+///   - Layouters may use Painters, for example for text (`TextSpan`),
+///     for which we do not know any sizing needed for the Layouters,
+///     until we call `TextPainter(text: textSpan).layout()`.
+///   - [availableWidth], [xLabels], [chartOptions] is passed as arguments
+///   - [xLabelsHeight], [gridStepWidth] is calculated
 ///   - depends on TextPainter
 ///     provided by LabelPainter.textPainterForLabel(String string)
-///   - Can skip labels to fit
-///   - Can rotate labels to fit
-///   - Can decrease font size to fit
-///
-/// Given
+///   - todo add iterations that allow layout size to be negotiated.
+///     The above requires a parent layouter or similar object, that can ask
+///     this object to recalculate
+///     - skip labels to fit
+///     - rotate labels to fit
+///     - decrease font size to fit
+///   - clients will typically make use of this object after [layout]
+///     has been called on it
 ///
 /// Assumes:
 ///   - Number of labels is the same as number of independent (X) axis points
 ///     for all values
 ///
 ///
+///
 
 class XLabelsLayouter {
 
-  // ### provided values
+  // ### input values
 
   List<String> _xLabels;
   double _availableWidth;
-  //double _xOffsetOfFirstMidLabel;
   double _spacing;
+  ChartOptions _chartOptions;
 
 
   // ### calculated values
 
-  /// x offset of label centers. Also represents points on X axis that should 
-  /// show a dash for the label center..
-  var midLabelsXOffsets = new List<double>();
-  List<painting.TextPainter> labelsPainters = new List();
+  /// Results of laying out the x axis labels, usabel by clients.
+  List<XLabelLayouterOutput> outputs = new List();
+
   double xLabelsHeight;
   double gridStepWidth;
 
@@ -51,37 +57,66 @@ class XLabelsLayouter {
   XLabelsLayouter({
     List<String> xLabels,
     double availableWidth,
-    //double xOffsetOfFirstMidLabel,
     ChartOptions chartOptions,
   }) {
     _xLabels = xLabels;
     _availableWidth = availableWidth;
-    //_xOffsetOfFirstMidLabel = xOffsetOfFirstMidLabel;
+    _chartOptions = chartOptions;
     _spacing = chartOptions.xLabelsPadLR;
   }
 
   /// Lays out the todo 0 document
 
   layout() {
-    // evenly divided available width. Includes any spacing on each side
+    // Evenly divided available width to all labels.
+    // Label width includes any spacing on each side.
     double labelFullWidth = _availableWidth / _xLabels.length;
 
     gridStepWidth = labelFullWidth;
 
-    double midLabelXOffset = -labelFullWidth / 2; // shift half label width left
+    double midLabelXOffset = -1 * labelFullWidth / 2; // half label width left
+    double labelXOffset = 0.0; // left point
 
     var seq = new Iterable.generate(_xLabels.length, (i) => i); // 0 .. length-1
 
     for ( var xIndex in seq ) {
-      double midLabel = midLabelXOffset * (xIndex + 1);
-      midLabelsXOffsets.add(midLabel);
-      labelsPainters.add(new LabelPainter().textPainterForLabel(_xLabels[xIndex]));
+      double midX = midLabelXOffset + gridStepWidth * xIndex;
+      double leftX = labelXOffset + gridStepWidth * xIndex;
+      var output = new XLabelLayouterOutput();
+      // textPainterForLabel calls [TextPainter.layout]
+      output.painter = new LabelPainter().textPainterForLabel(_xLabels[xIndex]);
+      output.xMidOffset = midX;
+      output.xOffset = leftX;
+      output.xOffsetToCenter = leftX + output.painter.width / 2;
+      outputs.add(output);
     }
 
     xLabelsHeight =
-        labelsPainters
+        outputs.map((var output) => output.painter)
             .map((painting.TextPainter p) => p.size.height)
             .reduce(math.max);
   }
 
+}
+
+/// A Wrapper of [XLabelsLayouter] members that can be iterated.
+
+/// All positions are relative in the container of x labels
+class XLabelLayouterOutput {
+
+  /// Painter configured to paint one label
+  painting.TextPainter painter;
+
+  /// x offset of label left corner.
+  double xOffset;
+
+  ///  x offset of label middle point.
+  ///
+  ///  Also is the x offset of point that should
+  /// show a dash for the label center on x axis.
+  double xMidOffset;
+
+  /// The offset of labels top/left corner,
+  /// which puts the label centered around the grid points.
+  double xOffsetToCenter;
 }

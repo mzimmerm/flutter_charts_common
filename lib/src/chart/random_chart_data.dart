@@ -5,7 +5,7 @@ import 'dart:collection' as collection;
 import 'chart_data.dart';
 
 
-/// Sample (rather than truly random) data for testing the chart.
+/// Generator of sample data for testing the charts.
 ///
 class RandomChartData extends ChartData {
 

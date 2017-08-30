@@ -11,6 +11,8 @@ import 'dart:ui' as ui;
 ///
 class LabelPainter {
 
+  // todo 0 add ChartOptions in constructor, store on state so methods can use.
+
   ///  For the passed string , obtains a TextPainter that can be used
   ///  both for measuring and drawing.
   ///
@@ -23,17 +25,17 @@ class LabelPainter {
   widgets.TextPainter textPainterForLabel(String string) {
     var text =
     new painting
-        .TextSpan( // also { List<TextSpan> children,GestureRecognizer recognizer }
+        .TextSpan(
         text: string,
         style:
-        new painting.TextStyle( // also
+        new painting.TextStyle(
             color: material.Colors.grey[600],
             fontSize: 14.0)); // todo 2 remove hardcoded fontSize and textScaleFactor below.
     var textPainter =
-    new painting.TextPainter( // also {int maxLines, String ellipsis} );
+    new painting.TextPainter(
         text: text,
-        textAlign: ui.TextAlign.left,
-        textScaleFactor: 1.0); //  textScaleFactor does nothing ??
+        textAlign: ui.TextAlign.center, // center text in available space
+        textScaleFactor: 1.0);          //  textScaleFactor does nothing ??
 
     textPainter
         .layout(); // (minWidth:0.0, maxWidth:double.INFINITY) or  minWidth:100.0, maxWidth: 300.0
