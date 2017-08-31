@@ -9,9 +9,14 @@ import 'chart_options.dart';
 
 /// todo 0 document
 ///
-/// Layout X labels.
+/// Master auto-layout of chart in the independent (X) axis direction,
+/// using the number of independent values.
+///
+/// Number of independent (X) values is assumed to be the same as number of
+/// xLabels, so that value can be used interchangeably.
 ///
 /// Note:
+///   - As a byproduct this lays out the X labels in their container. todo 1 generalize
 ///   - Layouters may use Painters, for example for text (`TextSpan`),
 ///     for which we do not know any sizing needed for the Layouters,
 ///     until we call `TextPainter(text: textSpan).layout()`.
@@ -35,7 +40,7 @@ import 'chart_options.dart';
 ///
 ///
 
-class XLabelsLayouter {
+class XLayouter {
 
   // ### input values
 
@@ -47,13 +52,13 @@ class XLabelsLayouter {
   // ### calculated values
 
   /// Results of laying out the x axis labels, usabel by clients.
-  List<XLabelLayouterOutput> outputs = new List();
+  List<XLayouterOutput> outputs = new List();
 
   double xLabelsContainerHeight;
   double gridStepWidth;
 
   /// todo 0 document
-  XLabelsLayouter({
+  XLayouter({
     List<String> xLabels,
     double availableWidth,
     ChartOptions chartOptions,
@@ -73,20 +78,16 @@ class XLabelsLayouter {
 
     gridStepWidth = labelFullWidth;
 
-    double midLabelXOffset = -1 * labelFullWidth / 2; // half label width left
     double labelXOffset = 0.0; // left point
 
     var seq = new Iterable.generate(_xLabels.length, (i) => i); // 0 .. length-1
 
     for ( var xIndex in seq ) {
-      double midX = midLabelXOffset + gridStepWidth * xIndex;
       double leftX = labelXOffset + gridStepWidth * xIndex;
-      var output = new XLabelLayouterOutput();
+      var output = new XLayouterOutput();
       // textPainterForLabel calls [TextPainter.layout]
       output.painter = new LabelPainter().textPainterForLabel(_xLabels[xIndex]);
-      output.xMidOffset = midX;
-      output.xOffset = leftX;
-      output.xOffsetToCenter = leftX + output.painter.width / 2;
+      output.xGridCoord = leftX + output.painter.width / 2;
       outputs.add(output);
     }
 
@@ -98,25 +99,22 @@ class XLabelsLayouter {
 
 }
 
-/// A Wrapper of [XLabelsLayouter] members that can be used by clients
+/// A Wrapper of [XLayouter] members that can be used by clients
 /// to layout x labels container.
 
-/// All positions are relative in the container of x labels
-class XLabelLayouterOutput {
+/// All positions are relative to the left of the container of x labels
+class XLayouterOutput {
 
   /// Painter configured to paint one label
   painting.TextPainter painter;
-
-  /// x offset of label left corner.
-  double xOffset;
 
   ///  x offset of label middle point.
   ///
   ///  Also is the x offset of point that should
   /// show a dash for the label center on x axis.
-  double xMidOffset;
+  double xGridCoord;
 
   /// The offset of labels top/left corner,
   /// which puts the label centered around the grid points.
-  double xOffsetToCenter;
+  /// double xOffsetToCenter;
 }

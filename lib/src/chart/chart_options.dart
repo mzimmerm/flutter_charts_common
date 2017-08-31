@@ -24,7 +24,7 @@ class ChartOptions {
   final double gridBottomExtendHeight = 12.0;
   // todo 1: forced by autolayout, for x labels to fit: final double gridLeftExtendWidth = 2.0;
 
-  final double gridStepWidth = 8.0; // todo 0 remove
+  // todo 1: forced by autolayout final double gridStepWidth = 8.0; // todo 0 remove
 
   // X labels pad from extend.
   final double xLabelsPadTop = 2.0;
