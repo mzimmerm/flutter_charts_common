@@ -12,17 +12,17 @@ class ChartOptions {
   /// Colors corresponding to each data row (series) in [ChartData].
   final List<ui.Color> dataRowsColors  = new List<ui.Color>();
 
-  final int minNumXGridLines = 1;
-  final int minNumYGridLines = 4;
+  final int minNumXGridLines = 1; // todo 00 not needed with auto layout?
+  final int minNumYGridLines = 4; // todo 00 not needed with auto layout?
 
   final ui.Color gridLinesColor = material.Colors.grey;
   final ui.Color xLabelsColor = material.Colors.grey; // or const ui.Color(0xFFEEEEEE)
 
   // Lines around grid if wanted
-  final double gridTopExtendHeight = 6.0;
-  // todo 1 - do not need right extend?
-  final double gridBottomExtendHeight = 12.0;
-  // todo 1: forced by autolayout, for x labels to fit: final double gridLeftExtendWidth = 2.0;
+  final double xTopTicksHeight = 6.0;
+  final double yRightTicksWidth = 6.0;
+  final double xBottomTicksHeight = 6.0;
+  final double yLeftTicksWidth = 6.0;
 
   // todo 1: forced by autolayout final double gridStepWidth = 8.0; // todo 0 remove
 
@@ -30,6 +30,9 @@ class ChartOptions {
   final double xLabelsPadTop = 2.0;
   final double xLabelsPadLR = 2.0;
 
+  // Y labels pad from extend.
+  final double yLabelsPadTop = 2.0;
+  final double yLabelsPadLR = 2.0;
 }
 
 /// File for [LineChartOptions] and [RandomLineChartOptions]

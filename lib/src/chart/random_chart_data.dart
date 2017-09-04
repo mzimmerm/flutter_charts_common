@@ -63,7 +63,7 @@ class RandomChartData extends ChartData {
 
   }
 
-  /// Generate list of [xLabels] from monthNames
+  /// Generate list of "random" [xLabels] as monthNames
   ///
   ///
   void _generateXLabels() {

@@ -6,6 +6,168 @@ import 'package:flutter/painting.dart' as painting show TextPainter;
 
 import 'elements_painters.dart';
 import 'chart_options.dart';
+import 'chart_data.dart';
+
+
+/// Layouters calculate coordinates of chart points
+/// used for painting grid, labels, chart points etc.
+///
+/// Creates a simple chart layouter and call all needed [layout] methods.
+
+class SimpleChartLayouter {
+
+  YLayouter yLayouter;
+  XLayouter xLayouter;
+
+  SimpleChartLayouter({
+    ui.Size   chartArea,
+    ChartData data,
+    ChartOptions, options
+  }) {
+    var yLayouter = new YLayouter(
+      chartData: data,
+      outsideYOffset:  0.0,
+      availableHeight: chartArea.height,
+      chartOptions: options,);
+
+    yLayouter.layout();
+    this.yLayouter = yLayouter;
+
+    var xLayouter = new XLayouter(
+      yLayouter: yLayouter,
+      chartData: data,
+      outsideXOffset:  yLayouter.yLabelsContainerWidth, // todo -1-1 add padding, from settings
+      availableWidth: chartArea.width - yLayouter.yLabelsContainerWidth,
+      minOutsideYOffset: 0.0, // todo -2-2,
+      chartOptions: options,);
+
+    xLayouter.layout();
+    this.xLayouter = xLayouter;
+  }
+}
+
+class YLayouter {
+
+  // ### input values
+
+  List<String> _yLabels;
+  double _outsideYOffset;
+  double _availableHeight;
+  double _spacing;
+  ChartOptions _options;
+  ChartData _data;
+
+  // ### calculated values
+
+  /// Results of laying out the y axis labels, usabel by clients.
+  List<YLayouterOutput> outputs = new List();
+
+  double yLabelsContainerHeight;
+  double yLabelsContainerWidth;
+  double gridStepHeight;
+
+  /// todo 0 document
+  YLayouter({
+    ChartData chartData,
+    double outsideYOffset,
+    double availableHeight,
+    ChartOptions chartOptions,
+  }) {
+    _data = chartData;
+    _outsideYOffset = outsideYOffset;
+    _availableHeight = availableHeight;
+    _options = chartOptions;
+    _spacing = chartOptions.yLabelsPadLR; // todo 00
+    _yLabels = _generateYLabels();
+  }
+
+  /// Number of horizontal lines on grid.
+  ///
+  /// Bottom line will be drawn at value of min(data), top line on max(data).
+  /// todo - 2 : calculate this from data, based on grid height and reasonable y points.
+  int get numYGridLines => _options.minNumYGridLines;
+
+  /// todo -1-1 Generate Y labels from data. For now hardcoded
+  List<String> _generateYLabels() {
+    return [ "25%", "50%", "75%", "100%"];
+  }
+
+  /// Lays out the todo 0 document
+
+  layout() {
+    // Evenly divided available height to all labels.
+    // Label height includes any spacing on each side.
+    double labelFullHeight = _availableHeight / _yLabels.length;
+
+    gridStepHeight = labelFullHeight;
+
+    double labelYOffset = 0.0; // top point
+
+    var seq = new Iterable.generate(_yLabels.length, (i) => i); // 0 .. length-1
+
+    for ( var yIndex in seq ) {
+      double topY = labelYOffset + gridStepHeight * yIndex;
+      var output = new YLayouterOutput();
+      // textPainterForLabel calls [TextPainter.layout]
+      output.painter = new LabelPainter().textPainterForLabel(_yLabels[yIndex]);
+      output.yGridCoord = topY + output.painter.height / 2;
+      outputs.add(output);
+    }
+
+    yLabelsContainerWidth =
+        outputs.map((var output) => output.painter)
+            .map((painting.TextPainter p) => p.size.width)
+            .reduce(math.max);
+
+    yLabelsContainerHeight =
+        outputs.map((var output) => output.painter)
+            .map((painting.TextPainter p) => p.size.height)
+            .reduce(math.max);
+
+  }
+/* todo 00
+  double _paintersMaxSize((painting.TextPainter p) => double dimFunc(p)) {
+    return  outputs.map((var output) => output.painter)
+            .map(dimFunc)
+            .reduce(math.max);
+  }
+*/
+
+  List<double> gridYCoords () {
+    return outputs
+        .map((var output) => output.yGridCoord  + _outsideYOffset)
+        .toList();
+  }
+
+}
+
+
+/// A Wrapper of [YLayouter] members that can be used by clients
+/// to layout y labels container.
+
+/// All positions are relative to the top of the container of y labels
+class YLayouterOutput {
+
+  /// Painter configured to paint one label
+  painting.TextPainter painter;
+
+  ///  y offset of label middle point.
+  ///
+  ///  Also is the y offset of point that should
+  /// show a "tick dash" for the label center on y axis.
+  ///
+  /// First "tick dash" is on the first label, last on the last label,
+  /// but y labels can be skipped.
+  double yGridCoord;
+}
+
+double outOfGridHeight({ChartOptions options, XLayouter xLayouter}) {
+  return
+    options.xTopTicksHeight +
+        options.xLabelsPadTop +
+        options.xBottomTicksHeight +
+        xLayouter.xLabelsContainerHeight;
+}
 
 /// todo 0 document
 ///
@@ -20,7 +182,7 @@ import 'chart_options.dart';
 ///   - Layouters may use Painters, for example for text (`TextSpan`),
 ///     for which we do not know any sizing needed for the Layouters,
 ///     until we call `TextPainter(text: textSpan).layout()`.
-///   - [availableWidth], [xLabels], [chartOptions] is passed as arguments
+///   - [availableWidth], [xLabels], [options] is passed as arguments
 ///   - [xLabelsContainerHeight], [gridStepWidth] is calculated
 ///   - depends on TextPainter
 ///     provided by LabelPainter.textPainterForLabel(String string)
@@ -44,28 +206,38 @@ class XLayouter {
 
   // ### input values
 
+  YLayouter _yLayouter;
   List<String> _xLabels;
+  double _outsideXOffset;
   double _availableWidth;
   double _spacing;
-  ChartOptions _chartOptions;
+  ChartOptions _options;
+  ChartData _data;
 
   // ### calculated values
 
   /// Results of laying out the x axis labels, usabel by clients.
   List<XLayouterOutput> outputs = new List();
 
+  double xLabelsContainerWidth;
   double xLabelsContainerHeight;
   double gridStepWidth;
 
   /// todo 0 document
   XLayouter({
-    List<String> xLabels,
+    YLayouter yLayouter,
+    ChartData chartData,
+    double outsideXOffset,
     double availableWidth,
+    double minOutsideYOffset,
     ChartOptions chartOptions,
   }) {
-    _xLabels = xLabels;
+    _yLayouter = yLayouter;
+    _xLabels = chartData.xLabels;
+    _data = chartData;
+    _outsideXOffset = outsideXOffset;
     _availableWidth = availableWidth;
-    _chartOptions = chartOptions;
+    _options = chartOptions;
     _spacing = chartOptions.xLabelsPadLR;
   }
 
@@ -74,7 +246,10 @@ class XLayouter {
   layout() {
     // Evenly divided available width to all labels.
     // Label width includes any spacing on each side.
-    double labelFullWidth = _availableWidth / _xLabels.length;
+    double labelFullWidth =
+        (_availableWidth - (_options.yLeftTicksWidth +_options.yRightTicksWidth))
+            /
+            _xLabels.length ;
 
     gridStepWidth = labelFullWidth;
 
@@ -91,12 +266,21 @@ class XLayouter {
       outputs.add(output);
     }
 
+    xLabelsContainerWidth =
+        outputs.map((var output) => output.painter)
+            .map((painting.TextPainter p) => p.size.width)
+            .reduce(math.max);
+
     xLabelsContainerHeight =
         outputs.map((var output) => output.painter)
             .map((painting.TextPainter p) => p.size.height)
             .reduce(math.max);
   }
 
+  List<double> gridXCoords() =>
+      outputs
+          .map((var output) => output.xGridCoord + _outsideXOffset)
+          .toList();
 }
 
 /// A Wrapper of [XLayouter] members that can be used by clients
@@ -110,11 +294,10 @@ class XLayouterOutput {
 
   ///  x offset of label middle point.
   ///
-  ///  Also is the x offset of point that should
-  /// show a dash for the label center on x axis.
+  /// Also is the x offset of point that should
+  /// show a "tick dash" for the label center on x axis.
+  ///
+  /// First "tick dash" is on the first label, last on the last label.
   double xGridCoord;
 
-  /// The offset of labels top/left corner,
-  /// which puts the label centered around the grid points.
-  /// double xOffsetToCenter;
 }
