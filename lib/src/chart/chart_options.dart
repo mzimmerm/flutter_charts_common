@@ -27,11 +27,11 @@ class ChartOptions {
   // todo 1: forced by autolayout final double gridStepWidth = 8.0; // todo 0 remove
 
   // X labels pad from extend.
-  final double xLabelsPadTop = 2.0;
+  final double xLabelsPadTB = 2.0;
   final double xLabelsPadLR = 2.0;
 
   // Y labels pad from extend.
-  final double yLabelsPadTop = 2.0;
+  final double yLabelsPadTB = 2.0;
   final double yLabelsPadLR = 2.0;
 }
 

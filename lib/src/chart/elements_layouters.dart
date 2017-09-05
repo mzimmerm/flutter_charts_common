@@ -16,46 +16,107 @@ import 'chart_data.dart';
 
 class SimpleChartLayouter {
 
+  ChartOptions _options;
+  ChartData _data;
+
   YLayouter yLayouter;
   XLayouter xLayouter;
 
+  /// XLayouter's grid cannot start on the left (x=0) of the available chart area,
+  /// it has to start at least a width of Y label left from the left.
+  ///
+  /// This member represents the forced minimum offset from the left
+  /// of the chart area, to the left of the grid.
+  double _xLayouterMinOffsetLeft;
+
+  /// XLayouter's grid cannot start on the top (y=0) of the available chart area,
+  /// it has to start at least half height of Y label down from the top.
+  ///
+  /// This member represents the forced minimum offset from top of the chart area,
+  /// to the top of the grid.
+  double _xLayouterMinOffsetTop;
+
+
+  /// Simple Layouter for a simple flutter chart.
+  ///
+  /// The simple flutter chart layout consists of only 3 areas:
+  ///   - [YLayouter] manages and lays out the Y labels area, by calculating
+  ///     sizes required for Y labels (in both X and Y direction).
+  ///     The [YLayouter]
+  ///   - [XLayouter] manages and lays out the X labels area, and the
+  ///     grid area. In the X direction, takes up all space left after the
+  ///     YLayouter layes out the  Y labels area. In the Y direction, takes
+  ///     up all available chart area, except a top horizontal strip,
+  ///     required to paint half of the topmost label.
   SimpleChartLayouter({
-    ui.Size   chartArea,
-    ChartData data,
-    ChartOptions, options
+    ui.Size chartArea,
+    ChartData chartData,
+    ChartOptions chartOptions
   }) {
+    _data = chartData;
+    _options = chartOptions;
+
     var yLayouter = new YLayouter(
-      chartData: data,
-      outsideYOffset:  0.0,
+      chartLayouter: this,
       availableHeight: chartArea.height,
-      chartOptions: options,);
+    );
 
     yLayouter.layout();
+    _xLayouterMinOffsetLeft =
+        yLayouter.yLabelsContainerWidth; // todo -1-1 add yLabelsPadRight
+    _xLayouterMinOffsetTop = yLayouter.yLabelsMaxHeight / 2;
     this.yLayouter = yLayouter;
 
     var xLayouter = new XLayouter(
-      yLayouter: yLayouter,
-      chartData: data,
-      outsideXOffset:  yLayouter.yLabelsContainerWidth, // todo -1-1 add padding, from settings
-      availableWidth: chartArea.width - yLayouter.yLabelsContainerWidth,
-      minOutsideYOffset: 0.0, // todo -2-2,
-      chartOptions: options,);
+        chartLayouter: this,
+        yLayouter: yLayouter,
+        // todo -1-1 add padding, from settings
+        availableWidth: chartArea.width - xLayouterOffsetLeft
+    );
 
     xLayouter.layout();
     this.xLayouter = xLayouter;
   }
+
+  double get xLayouterOffsetTop =>
+      math.max(_xLayouterMinOffsetTop, _options.xTopTicksHeight);
+
+  double get xLayouterOffsetLeft => _xLayouterMinOffsetLeft;
+
+  List<double> gridXCoords() {
+    return xLayouter.outputs
+        .map((var output) => xLayouterOffsetLeft + output.gridXCoord)
+        .toList();
+  }
+
+  List<double> gridYCoords() {
+    return yLayouter.outputs
+        .map((var output) => xLayouterOffsetTop + output.gridYCoord)
+        .toList();
+  }
+
+  double get gridVerticalLinesFromY => xLayouterOffsetTop;
+
+  double get gridVerticalLinesToY =>
+      gridYCoords().reduce(math.max) + _options.xBottomTicksHeight;
+
+  double get gridHorizontalLinesFromX => xLayouterOffsetLeft;
+
+  double get gridHorizontalLinesToX =>
+      gridXCoords().reduce(math.max) + _options.yRightTicksWidth;
+
+
 }
 
 class YLayouter {
 
+  /// The containing layouter.
+  SimpleChartLayouter _chartLayouter;
+
   // ### input values
 
   List<String> _yLabels;
-  double _outsideYOffset;
   double _availableHeight;
-  double _spacing;
-  ChartOptions _options;
-  ChartData _data;
 
   // ### calculated values
 
@@ -64,20 +125,16 @@ class YLayouter {
 
   double yLabelsContainerHeight;
   double yLabelsContainerWidth;
+  double yLabelsMaxHeight;
   double gridStepHeight;
 
   /// todo 0 document
   YLayouter({
-    ChartData chartData,
-    double outsideYOffset,
+    SimpleChartLayouter chartLayouter,
     double availableHeight,
-    ChartOptions chartOptions,
   }) {
-    _data = chartData;
-    _outsideYOffset = outsideYOffset;
+    _chartLayouter = chartLayouter;
     _availableHeight = availableHeight;
-    _options = chartOptions;
-    _spacing = chartOptions.yLabelsPadLR; // todo 00
     _yLabels = _generateYLabels();
   }
 
@@ -85,7 +142,7 @@ class YLayouter {
   ///
   /// Bottom line will be drawn at value of min(data), top line on max(data).
   /// todo - 2 : calculate this from data, based on grid height and reasonable y points.
-  int get numYGridLines => _options.minNumYGridLines;
+  int get numYGridLines => _chartLayouter._options.minNumYGridLines;
 
   /// todo -1-1 Generate Y labels from data. For now hardcoded
   List<String> _generateYLabels() {
@@ -101,30 +158,36 @@ class YLayouter {
 
     gridStepHeight = labelFullHeight;
 
-    double labelYOffset = 0.0; // top point
+    double labelYOffset = 0.0; // top point // todo -1-1 move to parent layouter
 
     var seq = new Iterable.generate(_yLabels.length, (i) => i); // 0 .. length-1
 
-    for ( var yIndex in seq ) {
+    for (var yIndex in seq) {
       double topY = labelYOffset + gridStepHeight * yIndex;
       var output = new YLayouterOutput();
       // textPainterForLabel calls [TextPainter.layout]
       output.painter = new LabelPainter().textPainterForLabel(_yLabels[yIndex]);
-      output.yGridCoord = topY + output.painter.height / 2;
+      output.gridYCoord = topY + output.painter.height / 2;
       outputs.add(output);
     }
 
     yLabelsContainerWidth =
         outputs.map((var output) => output.painter)
             .map((painting.TextPainter p) => p.size.width)
-            .reduce(math.max);
+            .reduce(math.max) + 2 * _chartLayouter._options
+            .yLabelsPadLR; // todo -1-1 the yLabelsPadLR must be used 1) in y labels print 2) add to dots calcs(?)
 
     yLabelsContainerHeight =
         outputs.map((var output) => output.painter)
             .map((painting.TextPainter p) => p.size.height)
-            .reduce(math.max);
+            .reduce(math.max); // todo 00 need sum
 
+    yLabelsMaxHeight =
+        outputs.map((var output) => output.painter)
+            .map((painting.TextPainter p) => p.size.height)
+            .reduce(math.max);
   }
+
 /* todo 00
   double _paintersMaxSize((painting.TextPainter p) => double dimFunc(p)) {
     return  outputs.map((var output) => output.painter)
@@ -133,11 +196,6 @@ class YLayouter {
   }
 */
 
-  List<double> gridYCoords () {
-    return outputs
-        .map((var output) => output.yGridCoord  + _outsideYOffset)
-        .toList();
-  }
 
 }
 
@@ -158,13 +216,14 @@ class YLayouterOutput {
   ///
   /// First "tick dash" is on the first label, last on the last label,
   /// but y labels can be skipped.
-  double yGridCoord;
+  double gridYCoord;
 }
 
+// todo -1-1 not used but adjust for xLabelsPadTB and yLabelsPadRight
 double outOfGridHeight({ChartOptions options, XLayouter xLayouter}) {
   return
     options.xTopTicksHeight +
-        options.xLabelsPadTop +
+        options.xLabelsPadTB +
         options.xBottomTicksHeight +
         xLayouter.xLabelsContainerHeight;
 }
@@ -204,41 +263,34 @@ double outOfGridHeight({ChartOptions options, XLayouter xLayouter}) {
 
 class XLayouter {
 
+  /// The containing layouter.
+  SimpleChartLayouter _chartLayouter;
+
   // ### input values
 
   YLayouter _yLayouter;
   List<String> _xLabels;
-  double _outsideXOffset;
   double _availableWidth;
-  double _spacing;
-  ChartOptions _options;
-  ChartData _data;
 
   // ### calculated values
 
   /// Results of laying out the x axis labels, usabel by clients.
   List<XLayouterOutput> outputs = new List();
 
-  double xLabelsContainerWidth;
+  double xLabelsContainerWidth; // todo -1-1 check if used and how
   double xLabelsContainerHeight;
   double gridStepWidth;
 
   /// todo 0 document
   XLayouter({
+    SimpleChartLayouter chartLayouter,
     YLayouter yLayouter,
-    ChartData chartData,
-    double outsideXOffset,
     double availableWidth,
-    double minOutsideYOffset,
-    ChartOptions chartOptions,
   }) {
+    _chartLayouter = chartLayouter;
     _yLayouter = yLayouter;
-    _xLabels = chartData.xLabels;
-    _data = chartData;
-    _outsideXOffset = outsideXOffset;
+    _xLabels = _chartLayouter._data .xLabels;
     _availableWidth = availableWidth;
-    _options = chartOptions;
-    _spacing = chartOptions.xLabelsPadLR;
   }
 
   /// Lays out the todo 0 document
@@ -247,9 +299,11 @@ class XLayouter {
     // Evenly divided available width to all labels.
     // Label width includes any spacing on each side.
     double labelFullWidth =
-        (_availableWidth - (_options.yLeftTicksWidth +_options.yRightTicksWidth))
+        (_availableWidth -
+            (_chartLayouter._options.yLeftTicksWidth +
+                _chartLayouter._options.yRightTicksWidth))
             /
-            _xLabels.length ;
+            _xLabels.length;
 
     gridStepWidth = labelFullWidth;
 
@@ -257,12 +311,12 @@ class XLayouter {
 
     var seq = new Iterable.generate(_xLabels.length, (i) => i); // 0 .. length-1
 
-    for ( var xIndex in seq ) {
+    for (var xIndex in seq) {
       double leftX = labelXOffset + gridStepWidth * xIndex;
       var output = new XLayouterOutput();
       // textPainterForLabel calls [TextPainter.layout]
       output.painter = new LabelPainter().textPainterForLabel(_xLabels[xIndex]);
-      output.xGridCoord = leftX + output.painter.width / 2;
+      output.gridXCoord = leftX + output.painter.width / 2;
       outputs.add(output);
     }
 
@@ -277,10 +331,6 @@ class XLayouter {
             .reduce(math.max);
   }
 
-  List<double> gridXCoords() =>
-      outputs
-          .map((var output) => output.xGridCoord + _outsideXOffset)
-          .toList();
 }
 
 /// A Wrapper of [XLayouter] members that can be used by clients
@@ -298,6 +348,6 @@ class XLayouterOutput {
   /// show a "tick dash" for the label center on x axis.
   ///
   /// First "tick dash" is on the first label, last on the last label.
-  double xGridCoord;
+  double gridXCoord;
 
 }
