@@ -26,6 +26,11 @@ class SimpleChartLayouter {
   List<XLayouterOutput> xOutputs = new List();
   List<YLayouterOutput> yOutputs = new List();
 
+  List<double> gridXCoords = new List();
+  List<double> gridYCoords = new List();
+
+  List<double> labelXCoords = new List();
+  List<double> labelYCoords = new List();
 
   /// XLayouter's grid cannot start on the left (x=0) of the available chart area,
   /// it has to start at least a width of Y label left from the left.
@@ -72,8 +77,8 @@ class SimpleChartLayouter {
 
     yLayouter.layout();
     _xLayouterMinOffsetLeft =
-        yLayouter.yLabelsContainerWidth; // todo -1-1 add yLabelsPadRight
-    _xLayouterMinOffsetTop = yLayouter.yLabelsMaxHeight / 2;
+        yLayouter._yLabelsContainerWidth;
+    _xLayouterMinOffsetTop = yLayouter._yLabelsMaxHeight / 2;
     this.yLayouter = yLayouter;
 
     var xLayouter = new XLayouter(
@@ -90,16 +95,25 @@ class SimpleChartLayouter {
       var xOutput = new XLayouterOutput();
       xOutput.painter = output.painter;
       xOutput.gridXCoord = xLayouterOffsetLeft + output.gridXCoord;
+      xOutput.labelXCoord = xLayouterOffsetLeft + output.labelXCoord;
       return xOutput;
     }).toList();
 
     yOutputs = yLayouter.outputs.map((var output) {
       var yOutput = new YLayouterOutput();
       yOutput.painter = output.painter;
-      yOutput.gridYCoord = xLayouterOffsetTop + output.gridYCoord;
+      yOutput.gridYCoord = output.gridYCoord;
+      yOutput.labelYCoord = output.gridYCoord;
       return yOutput;
     }).toList();
 
+    gridXCoords = xOutputs.map((var output) => output.gridXCoord).toList();
+
+    gridYCoords = yOutputs.map((var output) => output.gridYCoord).toList();
+
+    labelXCoords = xOutputs.map((var output) => output.labelXCoord).toList();
+
+    labelYCoords = yOutputs.map((var output) => output.labelYCoord).toList();
   }
 
   double get xLayouterOffsetTop =>
@@ -107,32 +121,25 @@ class SimpleChartLayouter {
 
   double get xLayouterOffsetLeft => _xLayouterMinOffsetLeft;
 
-  double get yRightTicksWidth => math.max(_options.yRightTicksWidth, xLayouter.gridStepWidth / 2);
+  double get yRightTicksWidth => math.max(_options.yRightTicksWidth, xLayouter._gridStepWidth / 2);
 
   double get gridVerticalLinesFromY => xLayouterOffsetTop;
 
   double get gridVerticalLinesToY =>
-      gridYCoords().reduce(math.max) + _options.xBottomTicksHeight;
+      gridYCoords.reduce(math.max) + _options.xBottomTicksHeight;
 
   double get gridHorizontalLinesFromX => xLayouterOffsetLeft;
 
   double get gridHorizontalLinesToX =>
-      gridXCoords().reduce(math.max) + yRightTicksWidth;
+      gridXCoords.reduce(math.max) + yRightTicksWidth;
 
-  // todo -1-1 remove from use, replace with xOutputs
-  List<double> gridXCoords() {
-    return xLayouter.outputs
-        .map((var output) => xLayouterOffsetLeft + output.gridXCoord)
-        .toList();
-  }
+  double get xLabelsContainerHeight => xLayouter._xLabelsContainerHeight;
 
-  // todo -1-1 remove from use, replace with yOutputs
-  List<double> gridYCoords() {
-    return yLayouter.outputs
-        .map((var output) => xLayouterOffsetTop + output.gridYCoord)
-        .toList();
-  }
+  double get xLabelsContainerWidth => xLayouter._xLabelsContainerWidth;
 
+  double get yLabelsContainerHeight => yLayouter._yLabelsContainerHeight;
+
+  double get yLabelsContainerWidth => yLayouter._yLabelsContainerWidth;
 }
 
 class YLayouter {
@@ -150,10 +157,10 @@ class YLayouter {
   /// Results of laying out the y axis labels, usabel by clients.
   List<YLayouterOutput> outputs = new List();
 
-  double yLabelsContainerHeight;
-  double yLabelsContainerWidth;
-  double yLabelsMaxHeight;
-  double gridStepHeight;
+  double _yLabelsContainerHeight;
+  double _yLabelsContainerWidth;
+  double _yLabelsMaxHeight;
+  double _gridStepHeight;
 
   /// todo 0 document
   YLayouter({
@@ -183,33 +190,35 @@ class YLayouter {
     // Label height includes any spacing on each side.
     double labelFullHeight = _availableHeight / _yLabels.length;
 
-    gridStepHeight = labelFullHeight;
-
-    double labelYOffset = 0.0; // top point // todo -1-1 move to parent layouter
+    _gridStepHeight = labelFullHeight;
 
     var seq = new Iterable.generate(_yLabels.length, (i) => i); // 0 .. length-1
 
     for (var yIndex in seq) {
-      double topY = labelYOffset + gridStepHeight * yIndex;
+      double topY = _gridStepHeight * yIndex;
       var output = new YLayouterOutput();
       // textPainterForLabel calls [TextPainter.layout]
       output.painter = new LabelPainter().textPainterForLabel(_yLabels[yIndex]);
       output.gridYCoord = topY + output.painter.height / 2;
+      output.labelYCoord = topY;
       outputs.add(output);
     }
 
-    yLabelsContainerWidth =
+    _yLabelsContainerWidth =
         outputs.map((var output) => output.painter)
             .map((painting.TextPainter painter) => painter.size.width)
             .reduce(math.max) + 2 * _chartLayouter._options
             .yLabelsPadLR; // todo -1-1 the yLabelsPadLR must be used 1) in y labels print 2) add to dots calcs(?)
 
-    yLabelsContainerHeight =
-        outputs.map((var output) => output.painter)
+    /// difference between top of first label and bottom of last todo 00 unreliable long term
+    _yLabelsContainerHeight =
+        outputs.map((var output) => output.labelYCoord).reduce(math.max) -
+            outputs.map((var output) => output.labelYCoord).reduce(math.min) +
+            outputs.map((var output) => output.painter)
             .map((painting.TextPainter painter) => painter.size.height)
-            .reduce(math.max); // todo 00 need sum
+            .reduce(math.max);
 
-    yLabelsMaxHeight =
+    _yLabelsMaxHeight =
         outputs.map((var output) => output.painter)
             .map((painting.TextPainter painter) => painter.size.height)
             .reduce(math.max);
@@ -244,18 +253,12 @@ class YLayouterOutput {
   /// First "tick dash" is on the first label, last on the last label,
   /// but y labels can be skipped.
   double gridYCoord;
+
+  ///  y offset of label left point (drawing y labels).
+  double labelYCoord;
 }
 
-// todo -1-1 not used but adjust for xLabelsPadTB and yLabelsPadRight
-double outOfGridHeight({ChartOptions options, XLayouter xLayouter}) {
-  return
-    options.xTopTicksHeight +
-        options.xLabelsPadTB +
-        options.xBottomTicksHeight +
-        xLayouter.xLabelsContainerHeight;
-}
-
-/// todo 0 document
+/// todo 00 document
 ///
 /// Master auto-layout of chart in the independent (X) axis direction,
 /// using the number of independent values.
@@ -269,7 +272,7 @@ double outOfGridHeight({ChartOptions options, XLayouter xLayouter}) {
 ///     for which we do not know any sizing needed for the Layouters,
 ///     until we call `TextPainter(text: textSpan).layout()`.
 ///   - [availableWidth], [xLabels], [options] is passed as arguments
-///   - [xLabelsContainerHeight], [gridStepWidth] is calculated
+///   - [xLabelsContainerHeight], [_gridStepWidth] is calculated
 ///   - depends on TextPainter
 ///     provided by LabelPainter.textPainterForLabel(String string)
 ///   - todo add iterations that allow layout size to be negotiated.
@@ -304,9 +307,9 @@ class XLayouter {
   /// Results of laying out the x axis labels, usabel by clients.
   List<XLayouterOutput> outputs = new List();
 
-  double xLabelsContainerWidth; // todo 00 unused
-  double xLabelsContainerHeight;
-  double gridStepWidth;
+  double _xLabelsContainerWidth; // todo 00 unused
+  double _xLabelsContainerHeight;
+  double _gridStepWidth;
 
   /// todo 0 document
   XLayouter({
@@ -327,36 +330,28 @@ class XLayouter {
   ///
   /// Label width includes spacing on each side.
   layout() {
-    /* todo -1-1
-     double labelFullWidth =
-        (_availableWidth -
-            (_chartLayouter._options.yLeftTicksWidth +
-                _chartLayouter._options.yRightTicksWidth))
-            /
-            _xLabels.length;
-    */
+
     double labelFullWidth = _availableWidth / _xLabels.length;
 
-    gridStepWidth = labelFullWidth;
+    _gridStepWidth = labelFullWidth;
 
     var seq = new Iterable.generate(_xLabels.length, (i) => i); // 0 .. length-1
 
     for (var xIndex in seq) {
-      // double leftX = gridStepWidth * xIndex;
+      // double leftX = _gridStepWidth * xIndex;
       var output = new XLayouterOutput();
       output.painter = new LabelPainter().textPainterForLabel(_xLabels[xIndex]);
-      // todo -1-1 output.gridXCoord = leftX + output.painter.width / 2;
-      // todo -1-1 o textPainterForLabel calls [TextPainter.layout]
-      output.gridXCoord = (gridStepWidth / 2) + gridStepWidth * xIndex;
+      output.gridXCoord = (_gridStepWidth / 2) + _gridStepWidth * xIndex;
+      output.labelXCoord = output.gridXCoord - output.painter.width / 2;
       outputs.add(output);
     }
 
-    xLabelsContainerWidth =
+    _xLabelsContainerWidth =
         outputs.map((var output) => output.painter)
             .map((painting.TextPainter painter) => painter.size.width)
-            .reduce(math.max); //todo -1-1 need sum
+            .reduce((a, b) => a + b);
 
-    xLabelsContainerHeight =
+    _xLabelsContainerHeight =
         outputs.map((var output) => output.painter)
             .map((painting.TextPainter painter) => painter.size.height)
             .reduce(math.max);
@@ -382,5 +377,8 @@ class XLayouterOutput {
   ///
   /// First "tick dash" is on the first label, last on the last label.
   double gridXCoord;
+
+  ///  x offset of label left point (see draw x labels).
+  double labelXCoord;
 
 }
