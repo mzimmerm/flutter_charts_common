@@ -12,13 +12,15 @@ class ChartOptions {
   /// Colors corresponding to each data row (series) in [ChartData].
   final List<ui.Color> dataRowsColors  = new List<ui.Color>();
 
+  /// Number of grid lines. Autolayout can decrease but not increase todo 00 decrease not implemented
   final int minNumXGridLines = 1; // todo 00 not needed with auto layout?
   final int minNumYGridLines = 4; // todo 00 not needed with auto layout?
 
+  /// Color defaults
   final ui.Color gridLinesColor = material.Colors.grey;
   final ui.Color xLabelsColor = material.Colors.grey; // or const ui.Color(0xFFEEEEEE)
 
-  // Lines around grid if wanted
+  /// Length of ticks around the grid rectangle. Autolayout can increase lengths.
   final double xTopTicksHeight = 6.0;
   final double yRightTicksWidth = 6.0;
   final double xBottomTicksHeight = 6.0;
