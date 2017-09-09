@@ -13,15 +13,15 @@ class ChartData {
 
   /// Labels on dependent (Y) axis.
   ///
-  /// They may not be defined, in which case the
+  /// They may be undefined, in which case the
   /// Y axis is likely not shown.
   List<String> yLabels = new List();
 
   void validate() {
-    for (List<double> list in dataRows) {
-      if (xLabels != null && list.length != xLabels.length) {
-        throw new StateError(" dataList.size() != xLabels.size()"
-            " [${list.length}] != [${xLabels.length}]. ");
+    for (List<double> dataRow in dataRows) {
+      if (xLabels != null && dataRow.length != xLabels.length) {
+        throw new StateError(" dataRow.length != xLabels.length"
+            " [${dataRow.length}] != [${xLabels.length}]. ");
       }
     }
   }

@@ -84,7 +84,7 @@ class SimpleChartLayouter {
     var xLayouter = new XLayouter(
         chartLayouter: this,
         yLayouter: yLayouter,
-        // todo -1-1 add padding, from settings
+        // todo 1 add padding, from settings
         availableWidth: chartArea.width - xLayouterOffsetLeft
     );
 
@@ -208,9 +208,9 @@ class YLayouter {
         outputs.map((var output) => output.painter)
             .map((painting.TextPainter painter) => painter.size.width)
             .reduce(math.max) + 2 * _chartLayouter._options
-            .yLabelsPadLR; // todo -1-1 the yLabelsPadLR must be used 1) in y labels print 2) add to dots calcs(?)
+            .yLabelsPadLR; // todo 0 the yLabelsPadLR must be used 1) in y labels print 2) add to dots calcs(?)
 
-    /// difference between top of first label and bottom of last todo 00 unreliable long term
+    /// difference between top of first label and bottom of last todo 1 unreliable long term
     _yLabelsContainerHeight =
         outputs.map((var output) => output.labelYCoord).reduce(math.max) -
             outputs.map((var output) => output.labelYCoord).reduce(math.min) +
@@ -258,7 +258,7 @@ class YLayouterOutput {
   double labelYCoord;
 }
 
-/// todo 00 document
+/// todo 0 document
 ///
 /// Master auto-layout of chart in the independent (X) axis direction,
 /// using the number of independent values.

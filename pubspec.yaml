@@ -2,7 +2,12 @@ name: flutter_charts_common
 description: Package of Flutter Charts Common Libraries
 
 dependencies:
+  decimal:
   flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
     sdk: flutter
 
 # For information on the generic Dart part of this file, see the
