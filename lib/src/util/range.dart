@@ -153,8 +153,6 @@ class Range {
     return null;
   }
 
-  // todo -2-2 move scaling here
-  //             and add to test
 }
 
 class RangeOutput {

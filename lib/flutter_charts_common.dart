@@ -32,7 +32,6 @@
 ///       2. In `pubspec.yaml`, the presence of the following line
 ///         `name: flutter_charts_common`. This line gives the library
 ///         it's name on pub.
-///         todo 0: what if we make name: different
 ///       3. Under the `root directory`, the existence of directory `lib`.
 ///       4. Under lib, the existence of file named `flutter_charts_common.dart`.
 ///          This file contains the exported dart files (libraries)

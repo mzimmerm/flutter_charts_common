@@ -22,7 +22,10 @@ class SimpleChartLayouter {
   YLayouter yLayouter; // todo 00 make private - all manipulation through YLayouterOutput
   XLayouter xLayouter;
 
-  /// X and Y Layouters output, in absolute positions (full chart size)
+  /// [xOutputs] and [yOutputs] hold on the X and Y Layouters output,
+  /// maintain all points in absolute positions
+  /// - positioned to full chart size, as provided by layout governing
+  /// chart's painter (in which this layouter is used).
   List<XLayouterOutput> xOutputs = new List();
   List<YLayouterOutput> yOutputs = new List();
 
@@ -84,7 +87,7 @@ class SimpleChartLayouter {
     var xLayouter = new XLayouter(
         chartLayouter: this,
         yLayouter: yLayouter,
-        // todo 1 add padding, from settings
+        // todo 1 add padding, from options
         availableWidth: chartArea.width - xLayouterOffsetLeft
     );
 
@@ -121,7 +124,8 @@ class SimpleChartLayouter {
 
   double get xLayouterOffsetLeft => _xLayouterMinOffsetLeft;
 
-  double get yRightTicksWidth => math.max(_options.yRightTicksWidth, xLayouter._gridStepWidth / 2);
+  double get yRightTicksWidth =>
+      math.max(_options.yRightTicksWidth, xLayouter._gridStepWidth / 2);
 
   double get gridVerticalLinesFromY => xLayouterOffsetTop;
 
@@ -142,6 +146,11 @@ class SimpleChartLayouter {
   double get yLabelsContainerWidth => yLayouter._yLabelsContainerWidth;
 }
 
+/// Auto-layouter of the area containing Y axis.
+///
+/// Out of all calls to layouter's [layout] by parent layouter,
+/// the call to this object's [layout] is first, thus
+/// providing remaining available space for grid and x labels.
 class YLayouter {
 
   /// The containing layouter.
@@ -162,7 +171,13 @@ class YLayouter {
   double _yLabelsMaxHeight;
   double _gridStepHeight;
 
-  /// todo 0 document
+  /// Constructor gives this layouter access to it's
+  /// layouting parent [chartLayouter], giving it [availableHeight],
+  /// which is (likely) the full chart area height available to the chart.
+  ///
+  /// This layouter uses the full [availableHeight], and takes as
+  /// much width as needed for Y labels to be painted.
+  ///
   YLayouter({
     SimpleChartLayouter chartLayouter,
     double availableHeight,
@@ -175,7 +190,7 @@ class YLayouter {
   /// Number of horizontal lines on grid.
   ///
   /// Bottom line will be drawn at value of min(data), top line on max(data).
-  /// todo - 2 : calculate this from data, based on grid height and reasonable y points.
+  /// todo 2 : calculate this from data, based on grid height and reasonable y points.
   int get numYGridLines => _chartLayouter._options.minNumYGridLines;
 
   /// todo -1-1 Generate Y labels from data. For now hardcoded
@@ -183,8 +198,8 @@ class YLayouter {
     return [ "25%", "50%", "75%", "100%"];
   }
 
-  /// Lays out the todo 0 document
-
+  /// Lays out the the area containing the Y axis.
+  ///
   layout() {
     // Evenly divided available height to all labels.
     // Label height includes any spacing on each side.
@@ -198,7 +213,8 @@ class YLayouter {
       double topY = _gridStepHeight * yIndex;
       var output = new YLayouterOutput();
       // textPainterForLabel calls [TextPainter.layout]
-      output.painter = new LabelPainter().textPainterForLabel(_yLabels[yIndex]);
+      output.painter = new LabelPainter(options: _chartLayouter._options)
+          .textPainterForLabel(_yLabels[yIndex]);
       output.gridYCoord = topY + output.painter.height / 2;
       output.labelYCoord = topY;
       outputs.add(output);
@@ -215,8 +231,8 @@ class YLayouter {
         outputs.map((var output) => output.labelYCoord).reduce(math.max) -
             outputs.map((var output) => output.labelYCoord).reduce(math.min) +
             outputs.map((var output) => output.painter)
-            .map((painting.TextPainter painter) => painter.size.height)
-            .reduce(math.max);
+                .map((painting.TextPainter painter) => painter.size.height)
+                .reduce(math.max);
 
     _yLabelsMaxHeight =
         outputs.map((var output) => output.painter)
@@ -260,10 +276,10 @@ class YLayouterOutput {
 
 /// todo 0 document
 ///
-/// Master auto-layout of chart in the independent (X) axis direction,
-/// using the number of independent values.
+/// Auto-layouter of chart in the independent (X) axis direction.
 ///
-/// Number of independent (X) values is assumed to be the same as number of
+/// Number of independent (X) values (length of each data row)
+/// is assumed to be the same as number of
 /// xLabels, so that value can be used interchangeably.
 ///
 /// Note:
@@ -287,9 +303,6 @@ class YLayouterOutput {
 /// Assumes:
 ///   - Number of labels is the same as number of independent (X) axis points
 ///     for all values
-///
-///
-///
 
 class XLayouter {
 
@@ -311,7 +324,14 @@ class XLayouter {
   double _xLabelsContainerHeight;
   double _gridStepWidth;
 
-  /// todo 0 document
+  /// Constructor gives this layouter access to it's
+  /// layouting parent [chartLayouter], giving it [availableWidth],
+  /// which is (likely) the remainder of width after [YLayouter]
+  /// has taken whichever width it needs.
+  ///
+  /// This layouter uses the full [availableWidth], and takes as
+  /// much height as needed for X labels to be painted.
+  ///
   XLayouter({
     SimpleChartLayouter chartLayouter,
     YLayouter yLayouter,
@@ -319,7 +339,7 @@ class XLayouter {
   }) {
     _chartLayouter = chartLayouter;
     _yLayouter = yLayouter;
-    _xLabels = _chartLayouter._data .xLabels;
+    _xLabels = _chartLayouter._data.xLabels;
     _availableWidth = availableWidth;
   }
 
@@ -330,7 +350,6 @@ class XLayouter {
   ///
   /// Label width includes spacing on each side.
   layout() {
-
     double labelFullWidth = _availableWidth / _xLabels.length;
 
     _gridStepWidth = labelFullWidth;
@@ -340,7 +359,8 @@ class XLayouter {
     for (var xIndex in seq) {
       // double leftX = _gridStepWidth * xIndex;
       var output = new XLayouterOutput();
-      output.painter = new LabelPainter().textPainterForLabel(_xLabels[xIndex]);
+      output.painter = new LabelPainter(options: _chartLayouter._options)
+          .textPainterForLabel(_xLabels[xIndex]);
       output.gridXCoord = (_gridStepWidth / 2) + _gridStepWidth * xIndex;
       output.labelXCoord = output.gridXCoord - output.painter.width / 2;
       outputs.add(output);

@@ -3,16 +3,20 @@ import 'package:flutter/painting.dart' as painting
     show TextStyle, TextSpan, TextPainter;
 import 'package:flutter/material.dart' as material show Colors;
 import 'dart:ui' as ui;
+import 'chart_options.dart';
 
 
-/// todo 1 document
-/// Provides classes and methods that paint individual elements
+/// Provides ability to paint individual elements
 /// of the chart: Labels, Axis, Titles.
 ///
 class LabelPainter {
 
-  // todo 0 add ChartOptions in constructor, store on state so methods can use.
+  /// Options allow to configure some sizes, colors, and layout.
+  ChartOptions _options;
 
+  LabelPainter({ChartOptions options}) {
+    _options = options;
+  }
   ///  For the passed string , obtains a TextPainter that can be used
   ///  both for measuring and drawing.
   ///
