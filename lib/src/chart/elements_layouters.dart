@@ -22,6 +22,11 @@ class SimpleChartLayouter {
   YLayouter yLayouter; // todo 00 make private - all manipulation through YLayouterOutput
   XLayouter xLayouter;
 
+  /// This layouter stores positions in the [GuidingPoints] instance,
+  /// and uses its members as "guiding points" where it's child layouts should
+  /// draw themselves.
+  GuidingPoints _guidingPoints;
+
   /// [xOutputs] and [yOutputs] hold on the X and Y Layouters output,
   /// maintain all points in absolute positions
   /// - positioned to full chart size, as provided by layout governing
@@ -29,8 +34,8 @@ class SimpleChartLayouter {
   List<XLayouterOutput> xOutputs = new List();
   List<YLayouterOutput> yOutputs = new List();
 
-  List<double> gridXCoords = new List();
-  List<double> gridYCoords = new List();
+  List<double> gridLineXCoords = new List();
+  List<double> gridLineYCoords = new List();
 
   List<double> labelXCoords = new List();
   List<double> labelYCoords = new List();
@@ -97,7 +102,7 @@ class SimpleChartLayouter {
     xOutputs = xLayouter.outputs.map((var output) {
       var xOutput = new XLayouterOutput();
       xOutput.painter = output.painter;
-      xOutput.gridXCoord = xLayouterOffsetLeft + output.gridXCoord;
+      xOutput.gridLineXCoord = xLayouterOffsetLeft + output.gridLineXCoord;
       xOutput.labelXCoord = xLayouterOffsetLeft + output.labelXCoord;
       return xOutput;
     }).toList();
@@ -105,14 +110,16 @@ class SimpleChartLayouter {
     yOutputs = yLayouter.outputs.map((var output) {
       var yOutput = new YLayouterOutput();
       yOutput.painter = output.painter;
-      yOutput.gridYCoord = output.gridYCoord;
-      yOutput.labelYCoord = output.gridYCoord;
+      yOutput.gridLineYCoord = output.gridLineYCoord;
+      yOutput.labelYCoord = output.gridLineYCoord;
       return yOutput;
     }).toList();
 
-    gridXCoords = xOutputs.map((var output) => output.gridXCoord).toList();
+    gridLineXCoords =
+        xOutputs.map((var output) => output.gridLineXCoord).toList();
 
-    gridYCoords = yOutputs.map((var output) => output.gridYCoord).toList();
+    gridLineYCoords =
+        yOutputs.map((var output) => output.gridLineYCoord).toList();
 
     labelXCoords = xOutputs.map((var output) => output.labelXCoord).toList();
 
@@ -120,22 +127,22 @@ class SimpleChartLayouter {
   }
 
   double get xLayouterOffsetTop =>
-      math.max(_xLayouterMinOffsetTop, _options.xTopTicksHeight);
+      math.max(_xLayouterMinOffsetTop, _options.xTopMinTicksHeight);
 
   double get xLayouterOffsetLeft => _xLayouterMinOffsetLeft;
 
   double get yRightTicksWidth =>
-      math.max(_options.yRightTicksWidth, xLayouter._gridStepWidth / 2);
+      math.max(_options.yRightMinTicksWidth, xLayouter._gridStepWidth / 2);
 
   double get gridVerticalLinesFromY => xLayouterOffsetTop;
 
   double get gridVerticalLinesToY =>
-      gridYCoords.reduce(math.max) + _options.xBottomTicksHeight;
+      gridLineYCoords.reduce(math.max) + _options.xBottomMinTicksHeight;
 
   double get gridHorizontalLinesFromX => xLayouterOffsetLeft;
 
   double get gridHorizontalLinesToX =>
-      gridXCoords.reduce(math.max) + yRightTicksWidth;
+      gridLineXCoords.reduce(math.max) + yRightTicksWidth;
 
   double get xLabelsContainerHeight => xLayouter._xLabelsContainerHeight;
 
@@ -144,6 +151,60 @@ class SimpleChartLayouter {
   double get yLabelsContainerHeight => yLayouter._yLabelsContainerHeight;
 
   double get yLabelsContainerWidth => yLayouter._yLabelsContainerWidth;
+
+  /// Calculates Y coordinate of the passed [value],
+  /// scaling it to the coordinates of the viewport (more precisely,
+  /// to coordinates stored in [_gridLineYCoords] which represent grid
+  /// positions.
+  ///
+  /// The passed [value] should be a unscaled data value.
+  double yCoordinateOf(double value) {
+    double ownScaleMin = _data.minData();
+    double ownScaleMax = _data.maxData();
+    double toScaleMin = gridLineYCoords.reduce(math.min);
+    double toScaleMax = gridLineYCoords.reduce(math.max);
+
+    return scaleValue(
+        value: value,
+        ownScaleMin: ownScaleMin,
+        ownScaleMax: ownScaleMax,
+        toScaleMin: toScaleMin,
+        toScaleMax: toScaleMax);
+  }
+
+
+  /// Scale the [value] that must be from the scale
+  /// given by [ownScaleMin] - [ownScaleMax]
+  /// to the "to scale" given by  [toScaleMin] - [toScaleMax].
+  ///
+  /// The calculations are rather pig headed and should be made more terse;
+  /// also could be separated by caching the scales which do not change
+  /// unless data change.
+  double scaleValue({double value,
+    double ownScaleMin,
+    double ownScaleMax,
+    double toScaleMin,
+    double toScaleMax}) {
+    // first move scales to be both starting at 0; also move value equivalently.
+    // Naming the 0 based coordinates ending with 0
+    double value0 = value - ownScaleMin;
+    double ownScaleMin0 = 0.0;
+    double ownScaleMax0 = ownScaleMax - ownScaleMin;
+    double toScaleMin0 = 0.0;
+    double toScaleMax0 = toScaleMax - toScaleMin;
+
+    // Next scale the value to 0 - 1 segment
+    double value0ScaledTo01 = value0 / (ownScaleMax0 - ownScaleMin0);
+
+    // Then scale value0Scaled01 to the 0 based toScale0
+    double valueOnToScale0 = value0ScaledTo01 * (toScaleMax0 - toScaleMin0);
+
+    // And finally shift the valueOnToScale0 to a non-0 start on "to scale"
+
+    double scaled = valueOnToScale0 + toScaleMin;
+
+    return scaled;
+  }
 }
 
 /// Auto-layouter of the area containing Y axis.
@@ -203,10 +264,8 @@ class YLayouter {
   layout() {
     // Evenly divided available height to all labels.
     // Label height includes any spacing on each side.
-    double labelFullHeight = _availableHeight / _yLabels.length;
-
-    _gridStepHeight = labelFullHeight;
-
+    _gridStepHeight = _availableHeight / _yLabels.length;
+    
     var seq = new Iterable.generate(_yLabels.length, (i) => i); // 0 .. length-1
 
     for (var yIndex in seq) {
@@ -215,7 +274,7 @@ class YLayouter {
       // textPainterForLabel calls [TextPainter.layout]
       output.painter = new LabelPainter(options: _chartLayouter._options)
           .textPainterForLabel(_yLabels[yIndex]);
-      output.gridYCoord = topY + output.painter.height / 2;
+      output.gridLineYCoord = topY + output.painter.height / 2;
       output.labelYCoord = topY;
       outputs.add(output);
     }
@@ -268,7 +327,7 @@ class YLayouterOutput {
   ///
   /// First "tick dash" is on the first label, last on the last label,
   /// but y labels can be skipped.
-  double gridYCoord;
+  double gridLineYCoord;
 
   ///  y offset of label left point (drawing y labels).
   double labelYCoord;
@@ -361,8 +420,8 @@ class XLayouter {
       var output = new XLayouterOutput();
       output.painter = new LabelPainter(options: _chartLayouter._options)
           .textPainterForLabel(_xLabels[xIndex]);
-      output.gridXCoord = (_gridStepWidth / 2) + _gridStepWidth * xIndex;
-      output.labelXCoord = output.gridXCoord - output.painter.width / 2;
+      output.gridLineXCoord = (_gridStepWidth / 2) + _gridStepWidth * xIndex;
+      output.labelXCoord = output.gridLineXCoord - output.painter.width / 2;
       outputs.add(output);
     }
 
@@ -396,9 +455,36 @@ class XLayouterOutput {
   /// Also is the x offset of vertical grid lines. (see draw grid)
   ///
   /// First "tick dash" is on the first label, last on the last label.
-  double gridXCoord;
+  double gridLineXCoord;
 
   ///  x offset of label left point (see draw x labels).
   double labelXCoord;
+
+}
+
+/// Structural "backplane" model for chart layout.
+///
+/// Maintains positions (offsets) of a minimum set of *significant points* in layout.
+/// Significant points are those at which the main layouter will paint
+/// it's layouter children, such as: top-left of the Y axis labels,
+/// top-left of the X axis labels, top-left of the data grid and other points.
+/// The significant points are scaled and positioned in
+/// the coordinates of ChartPainter.
+///
+/// SimpleChartLayouter stores positions in this instance,
+/// and use its members as "guiding points" where it's child layouts should
+/// draw themselves.
+class GuidingPoints {
+
+  List<Offset> yLabelsPoints;
+}
+
+/// Stores both scaled and unscaled X and Y values resulting from data.
+///
+/// While [GuidingPoints] manages points where layouts should
+/// draw themselves, this class manages data values that should be drawn.
+class LayoutValues {
+
+  List<num> yLabelsValues;
 
 }

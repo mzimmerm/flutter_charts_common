@@ -11,7 +11,7 @@ import 'chart_options.dart';
 ///
 class LabelPainter {
 
-  /// Options allow to configure some sizes, colors, and layout.
+  /// Options allow to configure certain sizes, colors, and layout.
   ChartOptions _options;
 
   LabelPainter({ChartOptions options}) {
