@@ -4,10 +4,8 @@ import 'package:test/test.dart';
 import '../../../lib/src/util/range.dart';
 
 void main() {
-  test('my first unit test', () {
-    var answer = 42;
-    expect(answer, 42);
-  });
+
+  // todo 00 add tests for scaling . Add more tests in general
 
   test('Poly power and coeff', () {
     Poly p = new Poly(from: 123.04);
@@ -56,12 +54,12 @@ void main() {
   });
 
 
-  test('Range makeLabels', () {
+  test('Range makeLabelsFromData', () {
 
     Range r = new Range(values: [1, 22, 333], maxLabels: 0);
-    RangeOutput o = r.makeLabels();
-    Interval c = o.closure;
-    List<num> labels = o.labels;
+    LabelScalerFormatter lsf = r.makeLabelsFromData();
+    Interval c = lsf.dataRange;
+    List<num> labels = lsf.labelValues;
     expect(c.min, 0.0);
     expect(c.max, 333.0);
     expect(labels.length, 4);
@@ -71,9 +69,9 @@ void main() {
     expect(labels[3], 300.0);
 
     r = new Range(values: [-1, -22, -333], maxLabels: 0);
-    o = r.makeLabels();
-    c = o.closure;
-    labels = o.labels;
+    lsf = r.makeLabelsFromData();
+    c = lsf.dataRange;
+    labels = lsf.labelValues;
     expect(c.min, -333.0);
     expect(c.max, 0.0);
     expect(labels.length, 4);
@@ -83,9 +81,9 @@ void main() {
     expect(labels[3], 0.0);
 
     r = new Range(values: [22, 10, -333], maxLabels: 0);
-    o = r.makeLabels();
-    c = o.closure;
-    labels = o.labels;
+    lsf = r.makeLabelsFromData();
+    c = lsf.dataRange;
+    labels = lsf.labelValues;
     expect(c.min, -333.0);
     expect(c.max, 22.0);
     expect(labels.length, 5);
@@ -96,9 +94,9 @@ void main() {
     expect(labels[4], 100.0);
 
     r = new Range(values: [-22, -10, 333], maxLabels: 0);
-    o = r.makeLabels();
-    c = o.closure;
-    labels = o.labels;
+    lsf = r.makeLabelsFromData();
+    c = lsf.dataRange;
+    labels = lsf.labelValues;
     expect(c.min, -22.0);
     expect(c.max, 333.0);
     expect(labels.length, 5);

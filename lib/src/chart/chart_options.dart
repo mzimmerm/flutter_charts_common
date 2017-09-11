@@ -4,15 +4,22 @@ import 'package:flutter/material.dart' as material show Colors;
 
 import 'random_chart_data.dart' show RandomChartData;
 
-Function toLabel = (String label) => label + yLabelUnits;
-
-Function valueToLabel = (num value) => value.toString() + yLabelUnits;
 
 /// Options for chart allow to configure certain sizes, colors, and layout.
 ///
 /// Generally, some defaults are provided here. Some options, mostly sizing
 /// related, may be overriden or adjusted by the chart auto-layout.
 class ChartOptions {
+
+  /// Defines how to layout chart.
+  ///
+  /// If `true`, a "manual" layout of Y axis is used.
+  /// This requires [yLabels] to be set. Each Y label has to be a interpretable as a number.
+  ///   - Current implementation splits Y axis into even number of sections, each yLabel level gets one line.
+  /// If `false`, a "auto" layout of Y axis is used.
+  ///   - Current implementation smartly creates Y labels from data so that little Y space is wasted.
+  ///   -  `false` is default
+  bool doManualLayoutUsingYLabels = false;
 
   /// Colors corresponding to each data row (series) in [ChartData].
   final List<ui.Color> dataRowsColors = new List<ui.Color>();
@@ -43,6 +50,9 @@ class ChartOptions {
 
   final String yLabelUnits = "";
 
+  String toLabel(String label) => label + yLabelUnits;
+
+  String valueToLabel(num value) => value.toString() + yLabelUnits;
 }
 
 /// File for [LineChartOptions] and [RandomLineChartOptions]

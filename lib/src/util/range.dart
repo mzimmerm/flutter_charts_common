@@ -1,37 +1,41 @@
 import 'dart:math' as math show min, max, pow;
 import 'package:decimal/decimal.dart' as decimal;
+import '../chart/chart_data.dart';
+import '../chart/chart_options.dart';
+import 'util.dart';
 
 /// Scalable range, supporting creation of properly scaled x and y axis labels.
 ///
 /// Given a list of values (for example to show on Y axis),
-/// [makeLabels] creates labels evenly distributed to cover the range of values,
+/// [makeLabelsFromData] creates labels evenly distributed to cover the range of values,
 /// trying to not waste space, and show only relevant labels, in
 /// decimal steps.
 
 class Range {
+  // todo 00 document fields and methods
 
   // ### Public api
 
   // ### Private api
 
+  /// The auto-label generator [makeLabelsFromData] can decrease this but not increase.
   int _maxLabels;
 
   List<num> _values;
-  List<num> _negValues;
-  List<num> _posValues;
 
-  /// [makeLabels] can decrease this but not increase.
   Range({List<num> values, int maxLabels = 10}) {
     _values = values;
     // todo 1 maxLabels does not work. Enable and add to test
     _maxLabels = maxLabels;
   }
 
-  /// superior and inferior closure
+  /// superior and inferior closure -
   Interval get _closure => new Interval(
       _values.reduce(math.min), _values.reduce(math.max), true, true);
 
-  RangeOutput makeLabels() {
+  // todo 00 document
+  /// Automatically generates unscaled label values from data.
+  LabelScalerFormatter makeLabelsFromData() {
     num min = _closure.min;
     num max = _closure.max;
     num diff = max - min;
@@ -53,7 +57,7 @@ class Range {
     // Need to handle all combinations of the above (a < b < c etc).
     // There are not that many, because pMin <= pMax and pDiff <= pMax.
     if (false && powerDiff < powerMin) {
-      // todo 1 - enable conditions where 0 is not needed to show,
+      // todo 1 - enable conditions where y=0 axis is not needed to show,
       //          to allow for details, mainly for lots of values.
       //          Make an option for this. Add to tests.
       from = polyMin.floorAtMaxPower.toDouble(); // 90
@@ -76,15 +80,13 @@ class Range {
       }
     }
 
-    // Now figure out labels, evenly distributed in range from, to
+    // Now figure out labels, evenly distributed in the from, to range.
 
     List<num> labels = _distributeLabelsIn(new Interval(from, to));
 
-    RangeOutput output = new RangeOutput();
-    output.closure = new Interval(from, to);
-    output.labels = labels;
-
-    return output;
+    return new LabelScalerFormatter(
+        dataRange: new Interval(from, to),
+        labeValues: labels);
   }
 
   /// Makes anywhere from zero to nine label values, at full decimal
@@ -148,17 +150,89 @@ class Range {
     return labels;
   }
 
-  RangeOutput scaleTo(RangeOutput other) {
+  LabelScalerFormatter scaleTo(LabelScalerFormatter other) {
     // todo -2-2
     return null;
   }
-
 }
 
-class RangeOutput {
-  /// Interval containing all values
-  Interval closure;
-  List<Comparable> labels;
+// todo 00 document as encapsulating Y Labels, also as return from ?? and
+// todo 0 refactor and make immutable
+class LabelScalerFormatter {
+  /// Interval containing all data, unscaled (closure is on the scale of data).
+  ///
+  /// Note: generally, the interval of labels ([labelValues]) and data ([dataRange])
+  ///       overlap/intersect, but do not contain one another.
+  Interval dataRange;
+
+  List<LabelInfo> labelInfos;
+
+  LabelScalerFormatter({Interval dataRange, List<num> labeValues}) {
+    this.dataRange = dataRange;
+    this.labelInfos = labeValues.map((value) => new LabelInfo(value, this)).toList();
+  }
+
+  /// Self-scale the RangeOutput to the scale of the available chart size.
+  void scaleLabelValuesTo(
+      {double toScaleMin, double toScaleMax, ChartOptions chartOptions}) {
+    labelInfos
+        .map((var labelInfo) => labelInfo._scaleLabelValueTo(
+            toScaleMin: toScaleMin,
+            toScaleMax: toScaleMax,
+            chartOptions: chartOptions))
+        .toList();
+  }
+
+  void makeLabelsPresentable({ChartOptions chartOptions}) {
+    labelInfos
+        .map((var labelInfo) =>
+            labelInfo.formattedLabel = labelInfo.scaledLabelValue.toString())
+        .toList();
+  }
+
+  // ### Helper accessors to collection of LabelInfos
+  List<num> get labelValues =>
+      labelInfos.map((labelInfo) => labelInfo.labelValue).toList();
+
+  List<String> get formattedLabels =>
+      labelInfos.map((labelInfo) => labelInfo.formattedLabel).toList();
+
+  List<num> get scaledLabelValues =>
+      labelInfos.map((labelInfo) => labelInfo.scaledLabelValue).toList();
+}
+
+/// Manages labels and their values: scaled in , unscaled, and presented (formatted) todo 00 document
+/// todo 00 review privacy
+class LabelInfo {
+  LabelInfo(this.labelValue, this.parentScaler);
+
+  LabelScalerFormatter parentScaler;
+
+  /// Unscaled label value, ([labelValues] are on the scale of data).
+  num labelValue;
+
+  /// Label actually showing on axis (Y axis); typically a value with unit.
+  ///
+  /// Formatted (and on same scale as) [scaledLabelValue].
+  String formattedLabel;
+
+  num scaledLabelValue;
+
+  /// Self-scale the RangeOutput to the scale of the available chart size.
+  void _scaleLabelValueTo(
+      {double toScaleMin, double toScaleMax, ChartOptions chartOptions}) {
+    Interval dataLabelEnvelope = parentScaler.dataRange.merge(new Interval(
+        parentScaler.labelValues.reduce(math.min),
+        parentScaler.labelValues.reduce(math.max)));
+
+    // todo 00 consider what to do about the toDouble() - may want to ensure higher up
+    scaledLabelValue = scaleValue(
+        value: labelValue.toDouble(),
+        ownScaleMin: dataLabelEnvelope.min.toDouble(),
+        ownScaleMax: dataLabelEnvelope.max.toDouble(),
+        toScaleMin: toScaleMin.toDouble(),
+        toScaleMax: toScaleMax.toDouble());
+  }
 }
 
 /// Not quite a polynomial. Just the minimum needed for Y label and axis
@@ -241,9 +315,9 @@ class Poly {
   }
 }
 
-// todo 0 add tests
-class Interval<T extends Comparable> {
-  // todo 0 make constant; also add validation for min before max
+/*
+// todo 1 consider fixing this later
+class IntervalC<T extends Comparable> {
   Interval(this.min, this.max,
       [this.includesMin = true, this.includesMax = true]);
 
@@ -265,5 +339,44 @@ class Interval<T extends Comparable> {
     if (beforeMax == 0 && includesMax) return true;
 
     return false;
+  }
+
+  /// Outermost union
+  IntervalC<Comparable> merge(Interval other) {
+
+    return new IntervalC(math.min(this.min, other.min), math.max(this.max, other.max));
+  }
+*/
+
+// todo 0 add tests
+class Interval {
+  // todo 0 make constant; also add validation for min before max
+  Interval(this.min, this.max,
+      [this.includesMin = true, this.includesMax = true]);
+
+  final num min;
+  final num max;
+  final bool includesMin;
+  final bool includesMax;
+
+  bool includes(num comparable) {
+    // before - read as: if negative, true, if zero test for includes, if positive, false.
+    int beforeMin = comparable.compareTo(min);
+    int beforeMax = comparable.compareTo(max);
+
+    // Hopefully these complications gain some minor speed,
+    // dealing with the obvious cases first.
+    if (beforeMin < 0 || beforeMax > 0) return false;
+    if (beforeMin > 0 && beforeMax < 0) return true;
+    if (beforeMin == 0 && includesMin) return true;
+    if (beforeMax == 0 && includesMax) return true;
+
+    return false;
+  }
+
+  /// Outermost union todo 1 consider includes
+  Interval merge(Interval other) {
+    return new Interval(
+        math.min(this.min, other.min), math.max(this.max, other.max));
   }
 }

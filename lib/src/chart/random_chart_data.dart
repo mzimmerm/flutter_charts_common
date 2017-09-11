@@ -79,6 +79,11 @@ class RandomChartData extends ChartData {
 
   }
 
+  // todo -1-1 where is this called?
+  void _generateYLabels() {
+    yLabels = [ "25%", "50%", "75%", "100%"];
+  }
+
   void _generateYValues() {
 
     dataRows = new List<List<double>>();

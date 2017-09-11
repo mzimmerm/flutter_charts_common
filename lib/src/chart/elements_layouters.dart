@@ -1,4 +1,4 @@
-import 'dart:ui' as ui show Rect, Size, Offset;
+import 'dart:ui' as ui show Size, Offset;
 import 'dart:math' as math show max, min;
 
 import 'package:flutter/painting.dart' as painting show TextPainter;
@@ -7,7 +7,8 @@ import 'package:flutter/painting.dart' as painting show TextPainter;
 import 'elements_painters.dart';
 import 'chart_options.dart';
 import 'chart_data.dart';
-
+import '../util/range.dart';
+import '../util/util.dart';
 
 /// Layouters calculate coordinates of chart points
 /// used for painting grid, labels, chart points etc.
@@ -15,11 +16,11 @@ import 'chart_data.dart';
 /// Creates a simple chart layouter and call all needed [layout] methods.
 
 class SimpleChartLayouter {
-
   ChartOptions _options;
   ChartData _data;
 
-  YLayouter yLayouter; // todo 00 make private - all manipulation through YLayouterOutput
+  YLayouter
+      yLayouter; // todo 00 make private - all manipulation through YLayouterOutput
   XLayouter xLayouter;
 
   /// This layouter stores positions in the [GuidingPoints] instance,
@@ -54,7 +55,6 @@ class SimpleChartLayouter {
   /// to the top of the grid.
   double _xLayouterMinOffsetTop;
 
-
   /// Simple Layouter for a simple flutter chart.
   ///
   /// The simple flutter chart layout consists of only 2 major areas:
@@ -70,11 +70,8 @@ class SimpleChartLayouter {
   ///     In the Y direction, takes
   ///     up all available chart area, except a top horizontal strip,
   ///     required to paint half of the topmost label.
-  SimpleChartLayouter({
-    ui.Size chartArea,
-    ChartData chartData,
-    ChartOptions chartOptions
-  }) {
+  SimpleChartLayouter(
+      {ui.Size chartArea, ChartData chartData, ChartOptions chartOptions}) {
     _data = chartData;
     _options = chartOptions;
 
@@ -84,8 +81,7 @@ class SimpleChartLayouter {
     );
 
     yLayouter.layout();
-    _xLayouterMinOffsetLeft =
-        yLayouter._yLabelsContainerWidth;
+    _xLayouterMinOffsetLeft = yLayouter._yLabelsContainerWidth;
     _xLayouterMinOffsetTop = yLayouter._yLabelsMaxHeight / 2;
     this.yLayouter = yLayouter;
 
@@ -93,8 +89,7 @@ class SimpleChartLayouter {
         chartLayouter: this,
         yLayouter: yLayouter,
         // todo 1 add padding, from options
-        availableWidth: chartArea.width - xLayouterOffsetLeft
-    );
+        availableWidth: chartArea.width - xLayouterOffsetLeft);
 
     xLayouter.layout();
     this.xLayouter = xLayouter;
@@ -172,38 +167,9 @@ class SimpleChartLayouter {
         toScaleMax: toScaleMax);
   }
 
-
-  /// Scale the [value] that must be from the scale
-  /// given by [ownScaleMin] - [ownScaleMax]
-  /// to the "to scale" given by  [toScaleMin] - [toScaleMax].
-  ///
-  /// The calculations are rather pig headed and should be made more terse;
-  /// also could be separated by caching the scales which do not change
-  /// unless data change.
-  double scaleValue({double value,
-    double ownScaleMin,
-    double ownScaleMax,
-    double toScaleMin,
-    double toScaleMax}) {
-    // first move scales to be both starting at 0; also move value equivalently.
-    // Naming the 0 based coordinates ending with 0
-    double value0 = value - ownScaleMin;
-    double ownScaleMin0 = 0.0;
-    double ownScaleMax0 = ownScaleMax - ownScaleMin;
-    double toScaleMin0 = 0.0;
-    double toScaleMax0 = toScaleMax - toScaleMin;
-
-    // Next scale the value to 0 - 1 segment
-    double value0ScaledTo01 = value0 / (ownScaleMax0 - ownScaleMin0);
-
-    // Then scale value0Scaled01 to the 0 based toScale0
-    double valueOnToScale0 = value0ScaledTo01 * (toScaleMax0 - toScaleMin0);
-
-    // And finally shift the valueOnToScale0 to a non-0 start on "to scale"
-
-    double scaled = valueOnToScale0 + toScaleMin;
-
-    return scaled;
+  // todo -2-2
+  onChangeYGridValues({List yGridValues, List yUnscaledGridValues}) {
+    // This new method must shift the passed yGridValues using GuidingPoints.yLayouterTL (whatis it???)
   }
 }
 
@@ -213,13 +179,11 @@ class SimpleChartLayouter {
 /// the call to this object's [layout] is first, thus
 /// providing remaining available space for grid and x labels.
 class YLayouter {
-
   /// The containing layouter.
   SimpleChartLayouter _chartLayouter;
 
   // ### input values
 
-  List<String> _yLabels;
   double _availableHeight;
 
   // ### calculated values
@@ -230,7 +194,6 @@ class YLayouter {
   double _yLabelsContainerHeight;
   double _yLabelsContainerWidth;
   double _yLabelsMaxHeight;
-  double _gridStepHeight;
 
   /// Constructor gives this layouter access to it's
   /// layouting parent [chartLayouter], giving it [availableHeight],
@@ -245,7 +208,6 @@ class YLayouter {
   }) {
     _chartLayouter = chartLayouter;
     _availableHeight = availableHeight;
-    _yLabels = _generateYLabels();
   }
 
   /// Number of horizontal lines on grid.
@@ -254,50 +216,87 @@ class YLayouter {
   /// todo 2 : calculate this from data, based on grid height and reasonable y points.
   int get numYGridLines => _chartLayouter._options.minNumYGridLines;
 
-  /// todo -1-1 Generate Y labels from data. For now hardcoded
-  List<String> _generateYLabels() {
-    return [ "25%", "50%", "75%", "100%"];
-  }
-
   /// Lays out the the area containing the Y axis.
   ///
   layout() {
-    // Evenly divided available height to all labels.
-    // Label height includes any spacing on each side.
-    _gridStepHeight = _availableHeight / _yLabels.length;
-    
-    var seq = new Iterable.generate(_yLabels.length, (i) => i); // 0 .. length-1
-
-    for (var yIndex in seq) {
-      double topY = _gridStepHeight * yIndex;
-      var output = new YLayouterOutput();
-      // textPainterForLabel calls [TextPainter.layout]
-      output.painter = new LabelPainter(options: _chartLayouter._options)
-          .textPainterForLabel(_yLabels[yIndex]);
-      output.gridLineYCoord = topY + output.painter.height / 2;
-      output.labelYCoord = topY;
-      outputs.add(output);
+    if (_chartLayouter._options.doManualLayoutUsingYLabels) {
+      // Evenly divided available height to all labels.
+      // Label height includes any spacing on each side.
+      layoutManually();
+    } else {
+      // auto layout acc to range scale
+      layoutAutomatically();
     }
-
-    _yLabelsContainerWidth =
-        outputs.map((var output) => output.painter)
+    _yLabelsContainerWidth = outputs
+            .map((var output) => output.painter)
             .map((painting.TextPainter painter) => painter.size.width)
-            .reduce(math.max) + 2 * _chartLayouter._options
-            .yLabelsPadLR; // todo 0 the yLabelsPadLR must be used 1) in y labels print 2) add to dots calcs(?)
+            .reduce(math.max) + 2 * _chartLayouter._options.yLabelsPadLR;
+        // todo 0 ^^ the yLabelsPadLR must be used 1) in y labels print 2) add to dots calcs(?)
 
     /// difference between top of first label and bottom of last todo 1 unreliable long term
     _yLabelsContainerHeight =
         outputs.map((var output) => output.labelYCoord).reduce(math.max) -
             outputs.map((var output) => output.labelYCoord).reduce(math.min) +
-            outputs.map((var output) => output.painter)
+            outputs
+                .map((var output) => output.painter)
                 .map((painting.TextPainter painter) => painter.size.height)
                 .reduce(math.max);
 
-    _yLabelsMaxHeight =
-        outputs.map((var output) => output.painter)
-            .map((painting.TextPainter painter) => painter.size.height)
-            .reduce(math.max);
+    _yLabelsMaxHeight = outputs
+        .map((var output) => output.painter)
+        .map((painting.TextPainter painter) => painter.size.height)
+        .reduce(math.max);
   }
+
+  void layoutManually() {
+
+    // Evenly divided available height to all labels.
+    // Label height includes any spacing on each side.
+    List<String> yLabels = _chartLayouter._data.yLabels;
+    double gridStepHeight = _availableHeight / yLabels.length;
+
+    var seq = new Iterable.generate(yLabels.length, (i) => i); // 0 .. length-1
+
+    for (var yIndex in seq) {
+      double topY = gridStepHeight * yIndex;
+      var output = new YLayouterOutput();
+      // textPainterForLabel calls [TextPainter.layout]
+      output.painter = new LabelPainter(options: _chartLayouter._options)
+          .textPainterForLabel(yLabels[yIndex]);
+      output.gridLineYCoord = topY + output.painter.height / 2;
+      output.labelYCoord = topY;
+      outputs.add(output);
+    }
+  }
+
+  void layoutAutomatically() {
+
+    List flatData = _chartLayouter._data.dataRows.expand((i) => i).toList();
+    ChartOptions options = _chartLayouter._options;
+
+    Range range = new Range(values: flatData, maxLabels: 10);
+    // todo 00 refactor this block to one method or add a method for it
+    LabelScalerFormatter labelScaler = range.makeLabelsFromData();
+    labelScaler.scaleLabelValuesTo(
+        toScaleMin: 0.0, toScaleMax: _availableHeight, chartOptions: options);
+    labelScaler.makeLabelsPresentable(chartOptions: options);
+
+    _chartLayouter.onChangeYGridValues(
+        yGridValues: labelScaler.scaledLabelValues,
+        yUnscaledGridValues: labelScaler.labelValues);
+
+    for (LabelInfo labelInfo in labelScaler.labelInfos) {
+      double topY = labelInfo.scaledLabelValue;
+      var output = new YLayouterOutput();
+      // textPainterForLabel calls [TextPainter.layout]
+      output.painter = new LabelPainter(options: _chartLayouter._options)
+          .textPainterForLabel(labelInfo.formattedLabel);
+      output.gridLineYCoord = topY + output.painter.height / 2;
+      output.labelYCoord = topY;
+      outputs.add(output);
+    }
+  }
+}
 
 /* todo 00 try to convert above to common code
   double _paintersMaxSize((painting.TextPainter p) => double dimFunc(p)) {
@@ -307,16 +306,11 @@ class YLayouter {
   }
 */
 
-
-}
-
-
 /// A Wrapper of [YLayouter] members that can be used by clients
 /// to layout y labels container.
 
 /// All positions are relative to the top of the container of y labels
 class YLayouterOutput {
-
   /// Painter configured to paint one label
   painting.TextPainter painter;
 
@@ -364,7 +358,6 @@ class YLayouterOutput {
 ///     for all values
 
 class XLayouter {
-
   /// The containing layouter.
   SimpleChartLayouter _chartLayouter;
 
@@ -425,17 +418,16 @@ class XLayouter {
       outputs.add(output);
     }
 
-    _xLabelsContainerWidth =
-        outputs.map((var output) => output.painter)
-            .map((painting.TextPainter painter) => painter.size.width)
-            .reduce((a, b) => a + b);
+    _xLabelsContainerWidth = outputs
+        .map((var output) => output.painter)
+        .map((painting.TextPainter painter) => painter.size.width)
+        .reduce((a, b) => a + b);
 
-    _xLabelsContainerHeight =
-        outputs.map((var output) => output.painter)
-            .map((painting.TextPainter painter) => painter.size.height)
-            .reduce(math.max);
+    _xLabelsContainerHeight = outputs
+        .map((var output) => output.painter)
+        .map((painting.TextPainter painter) => painter.size.height)
+        .reduce(math.max);
   }
-
 }
 
 /// A Wrapper of [XLayouter] members that can be used by clients
@@ -443,7 +435,6 @@ class XLayouter {
 
 /// All positions are relative to the left of the container of x labels
 class XLayouterOutput {
-
   /// Painter configured to paint one label
   painting.TextPainter painter;
 
@@ -459,7 +450,6 @@ class XLayouterOutput {
 
   ///  x offset of label left point (see draw x labels).
   double labelXCoord;
-
 }
 
 /// Structural "backplane" model for chart layout.
@@ -475,8 +465,7 @@ class XLayouterOutput {
 /// and use its members as "guiding points" where it's child layouts should
 /// draw themselves.
 class GuidingPoints {
-
-  List<Offset> yLabelsPoints;
+  List<ui.Offset> yLabelPoints;
 }
 
 /// Stores both scaled and unscaled X and Y values resulting from data.
@@ -484,7 +473,11 @@ class GuidingPoints {
 /// While [GuidingPoints] manages points where layouts should
 /// draw themselves, this class manages data values that should be drawn.
 class LayoutValues {
+  /// Y values of grid (also centers of Y labels),
+  /// on the data scale
+  List<num> yUnscaledGridValues;
 
-  List<num> yLabelsValues;
-
+  /// Y values of grid (also centers of Y labels),
+  /// scaled to the main layouter coordinates.
+  List<num> yGridValues;
 }
