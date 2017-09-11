@@ -35,11 +35,11 @@ class SimpleChartLayouter {
   List<XLayouterOutput> xOutputs = new List();
   List<YLayouterOutput> yOutputs = new List();
 
-  List<double> gridLineXCoords = new List();
-  List<double> gridLineYCoords = new List();
+  List<double> vertGridLineXs = new List();
+  List<double> horizGridLineYs = new List();
 
-  List<double> labelXCoords = new List();
-  List<double> labelYCoords = new List();
+  List<double> labelXs = new List();
+  List<double> labelYs = new List();
 
   /// XLayouter's grid cannot start on the left (x=0) of the available chart area,
   /// it has to start at least a width of Y label left from the left.
@@ -97,28 +97,28 @@ class SimpleChartLayouter {
     xOutputs = xLayouter.outputs.map((var output) {
       var xOutput = new XLayouterOutput();
       xOutput.painter = output.painter;
-      xOutput.gridLineXCoord = xLayouterOffsetLeft + output.gridLineXCoord;
-      xOutput.labelXCoord = xLayouterOffsetLeft + output.labelXCoord;
+      xOutput.vertGridLineX = xLayouterOffsetLeft + output.vertGridLineX;
+      xOutput.labelX = xLayouterOffsetLeft + output.labelX;
       return xOutput;
     }).toList();
 
     yOutputs = yLayouter.outputs.map((var output) {
       var yOutput = new YLayouterOutput();
       yOutput.painter = output.painter;
-      yOutput.gridLineYCoord = output.gridLineYCoord;
-      yOutput.labelYCoord = output.gridLineYCoord;
+      yOutput.horizGridLineY = output.horizGridLineY;
+      yOutput.labelY = output.horizGridLineY;
       return yOutput;
     }).toList();
 
-    gridLineXCoords =
-        xOutputs.map((var output) => output.gridLineXCoord).toList();
+    vertGridLineXs =
+        xOutputs.map((var output) => output.vertGridLineX).toList();
 
-    gridLineYCoords =
-        yOutputs.map((var output) => output.gridLineYCoord).toList();
+    horizGridLineYs =
+        yOutputs.map((var output) => output.horizGridLineY).toList();
 
-    labelXCoords = xOutputs.map((var output) => output.labelXCoord).toList();
+    labelXs = xOutputs.map((var output) => output.labelX).toList();
 
-    labelYCoords = yOutputs.map((var output) => output.labelYCoord).toList();
+    labelYs = yOutputs.map((var output) => output.labelY).toList();
   }
 
   double get xLayouterOffsetTop =>
@@ -132,12 +132,12 @@ class SimpleChartLayouter {
   double get gridVerticalLinesFromY => xLayouterOffsetTop;
 
   double get gridVerticalLinesToY =>
-      gridLineYCoords.reduce(math.max) + _options.xBottomMinTicksHeight;
+      horizGridLineYs.reduce(math.max) + _options.xBottomMinTicksHeight;
 
   double get gridHorizontalLinesFromX => xLayouterOffsetLeft;
 
   double get gridHorizontalLinesToX =>
-      gridLineXCoords.reduce(math.max) + yRightTicksWidth;
+      vertGridLineXs.reduce(math.max) + yRightTicksWidth;
 
   double get xLabelsContainerHeight => xLayouter._xLabelsContainerHeight;
 
@@ -149,15 +149,15 @@ class SimpleChartLayouter {
 
   /// Calculates Y coordinate of the passed [value],
   /// scaling it to the coordinates of the viewport (more precisely,
-  /// to coordinates stored in [_gridLineYCoords] which represent grid
+  /// to coordinates stored in [_horizGridLineYs] which represent grid
   /// positions.
   ///
   /// The passed [value] should be a unscaled data value.
   double yCoordinateOf(double value) {
     double ownScaleMin = _data.minData();
     double ownScaleMax = _data.maxData();
-    double toScaleMin = gridLineYCoords.reduce(math.min);
-    double toScaleMax = gridLineYCoords.reduce(math.max);
+    double toScaleMin = horizGridLineYs.reduce(math.min);
+    double toScaleMax = horizGridLineYs.reduce(math.max);
 
     return scaleValue(
         value: value,
@@ -235,8 +235,8 @@ class YLayouter {
 
     /// difference between top of first label and bottom of last todo 1 unreliable long term
     _yLabelsContainerHeight =
-        outputs.map((var output) => output.labelYCoord).reduce(math.max) -
-            outputs.map((var output) => output.labelYCoord).reduce(math.min) +
+        outputs.map((var output) => output.labelY).reduce(math.max) -
+            outputs.map((var output) => output.labelY).reduce(math.min) +
             outputs
                 .map((var output) => output.painter)
                 .map((painting.TextPainter painter) => painter.size.height)
@@ -263,8 +263,8 @@ class YLayouter {
       // textPainterForLabel calls [TextPainter.layout]
       output.painter = new LabelPainter(options: _chartLayouter._options)
           .textPainterForLabel(yLabels[yIndex]);
-      output.gridLineYCoord = topY + output.painter.height / 2;
-      output.labelYCoord = topY;
+      output.horizGridLineY = topY + output.painter.height / 2;
+      output.labelY = topY;
       outputs.add(output);
     }
   }
@@ -291,8 +291,8 @@ class YLayouter {
       // textPainterForLabel calls [TextPainter.layout]
       output.painter = new LabelPainter(options: _chartLayouter._options)
           .textPainterForLabel(labelInfo.formattedLabel);
-      output.gridLineYCoord = topY + output.painter.height / 2;
-      output.labelYCoord = topY;
+      output.horizGridLineY = topY + output.painter.height / 2;
+      output.labelY = topY;
       outputs.add(output);
     }
   }
@@ -321,10 +321,10 @@ class YLayouterOutput {
   ///
   /// First "tick dash" is on the first label, last on the last label,
   /// but y labels can be skipped.
-  double gridLineYCoord;
+  double horizGridLineY;
 
   ///  y offset of label left point (drawing y labels).
-  double labelYCoord;
+  double labelY;
 }
 
 /// todo 0 document
@@ -413,8 +413,8 @@ class XLayouter {
       var output = new XLayouterOutput();
       output.painter = new LabelPainter(options: _chartLayouter._options)
           .textPainterForLabel(_xLabels[xIndex]);
-      output.gridLineXCoord = (_gridStepWidth / 2) + _gridStepWidth * xIndex;
-      output.labelXCoord = output.gridLineXCoord - output.painter.width / 2;
+      output.vertGridLineX = (_gridStepWidth / 2) + _gridStepWidth * xIndex;
+      output.labelX = output.vertGridLineX - output.painter.width / 2;
       outputs.add(output);
     }
 
@@ -446,10 +446,10 @@ class XLayouterOutput {
   /// Also is the x offset of vertical grid lines. (see draw grid)
   ///
   /// First "tick dash" is on the first label, last on the last label.
-  double gridLineXCoord;
+  double vertGridLineX;
 
   ///  x offset of label left point (see draw x labels).
-  double labelXCoord;
+  double labelX;
 }
 
 /// Structural "backplane" model for chart layout.
