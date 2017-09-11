@@ -72,22 +72,28 @@ class SimpleChartLayouter {
   ///     required to paint half of the topmost label.
   SimpleChartLayouter(
       {ui.Size chartArea, ChartData chartData, ChartOptions chartOptions}) {
+
     _data = chartData;
     _options = chartOptions;
 
-    var yLayouter = new YLayouter(
+    // ### 1. First call to YLayouter provides how much width is left for XLayouter (grid and X axis)
+    var yLayouterFirst = new YLayouter(
       chartLayouter: this,
       availableHeight: chartArea.height,
+      yAxisMinOffsetFromTop: 0.0,
+      yAxisMinOffsetFromBottom:  0.0
+
     );
 
-    yLayouter.layout();
-    _xLayouterMinOffsetLeft = yLayouter._yLabelsContainerWidth;
-    _xLayouterMinOffsetTop = yLayouter._yLabelsMaxHeight / 2;
-    this.yLayouter = yLayouter;
+    yLayouterFirst.layout();
+    _xLayouterMinOffsetLeft = yLayouterFirst._yLabelsContainerWidth;
+    _xLayouterMinOffsetTop  = yLayouterFirst._yLabelsMaxHeight / 2;
+    this.yLayouter          = yLayouterFirst;
 
+    // ### 2. Knowing width required by YLayouter, we can layout X labels and grid.
+    //        The available height is todo -1-1
     var xLayouter = new XLayouter(
         chartLayouter: this,
-        yLayouter: yLayouter,
         // todo 1 add padding, from options
         availableWidth: chartArea.width - xLayouterOffsetLeft);
 
@@ -101,6 +107,26 @@ class SimpleChartLayouter {
       xOutput.labelX = xLayouterOffsetLeft + output.labelX;
       return xOutput;
     }).toList();
+
+    // ### 3. Second call to YLayouter is needed, as available height for Y
+    //        is only known after XLayouter provided height ov xLabels
+    //        on the bottom (which is not available for Y height)
+    // First call to YLayouter provides how much width is left for XLayouter (grid and X axis)
+    var yAxisMinOffsetFromTop = xLayouterOffsetTop; //  + _options.xTopMinTicksHeight;
+    var yAxisMinOffsetFromBottom = _options.xLabelsPadTB + _options.xBottomMinTicksHeight;
+    var yLayouter = new YLayouter(
+      chartLayouter: this,
+      availableHeight: chartArea.height - xLabelsContainerHeight,
+      yAxisMinOffsetFromTop: yAxisMinOffsetFromTop,
+      yAxisMinOffsetFromBottom:  yAxisMinOffsetFromBottom
+    );
+
+    yLayouter.layout();
+    //_xLayouterMinOffsetLeft = yLayouter._yLabelsContainerWidth;
+    //_xLayouterMinOffsetTop = yLayouter._yLabelsMaxHeight / 2;
+    this.yLayouter = yLayouter;
+
+    // ### 4. Recalculate offsets for this parent layouter
 
     yOutputs = yLayouter.outputs.map((var output) {
       var yOutput = new YLayouterOutput();
@@ -148,6 +174,8 @@ class SimpleChartLayouter {
 
   double get yLabelsContainerWidth => yLayouter._yLabelsContainerWidth;
 
+  double get yLabelsMaxHeight => yLayouter._yLabelsMaxHeight;
+
   /// Calculates Y coordinate of the passed [value],
   /// scaling it to the coordinates of the viewport (more precisely,
   /// to coordinates stored in [_horizGridLineYs] which represent grid
@@ -168,7 +196,7 @@ class SimpleChartLayouter {
         toScaleMax: toScaleMax);
   }
 
-  // todo -2-2
+  // todo -1-1
   onChangeYGridValues({List yGridValues, List yUnscaledGridValues}) {
     // This new method must shift the passed yGridValues using GuidingPoints.yLayouterTL (whatis it???)
   }
@@ -195,6 +223,9 @@ class YLayouter {
   double _yLabelsContainerHeight;
   double _yLabelsContainerWidth;
   double _yLabelsMaxHeight;
+  double _yAxisMinOffsetFromTop;
+      double _yAxisMinOffsetFromBottom;
+      double _yAxisAvailableHeight;
 
   /// Constructor gives this layouter access to it's
   /// layouting parent [chartLayouter], giving it [availableHeight],
@@ -206,9 +237,16 @@ class YLayouter {
   YLayouter({
     SimpleChartLayouter chartLayouter,
     double availableHeight,
+    double yAxisMinOffsetFromTop,
+    double yAxisMinOffsetFromBottom
+
   }) {
     _chartLayouter = chartLayouter;
     _availableHeight = availableHeight;
+
+   _yAxisMinOffsetFromTop = yAxisMinOffsetFromTop;
+       _yAxisMinOffsetFromBottom = yAxisMinOffsetFromBottom;
+     _yAxisAvailableHeight =  _availableHeight - _yAxisMinOffsetFromTop - _yAxisMinOffsetFromBottom;
   }
 
   /// Number of horizontal lines on grid.
@@ -254,6 +292,7 @@ class YLayouter {
     // Evenly divided available height to all labels.
     // Label height includes any spacing on each side.
     List<String> yLabels = _chartLayouter._data.yLabels;
+    // todo -1-1 this is actually not right, the _availableHeight is less - need to subtract MAX(yLabel height (half on top, half on bottom), options. xLabelsPadTB * 2)
     double gridStepHeight = _availableHeight / yLabels.length;
 
     var seq = new Iterable.generate(yLabels.length, (i) => i); // 0 .. length-1
@@ -279,9 +318,10 @@ class YLayouter {
     // todo 00 refactor this block to one method or add a method for it
     LabelScalerFormatter labelScaler = range.makeLabelsFromData();
     labelScaler.scaleLabelValuesTo(
-        toScaleMin: 0.0, toScaleMax: _availableHeight, chartOptions: options);
+        toScaleMin: _yAxisMinOffsetFromTop, toScaleMax: _yAxisAvailableHeight + _yAxisMinOffsetFromTop, chartOptions: options);
     labelScaler.makeLabelsPresentable(chartOptions: options);
 
+    // todo -2-2 is this needed?
     _chartLayouter.onChangeYGridValues(
         yGridValues: labelScaler.scaledLabelValues,
         yUnscaledGridValues: labelScaler.labelValues);
@@ -368,7 +408,6 @@ class XLayouter {
 
   // ### input values
 
-  YLayouter _yLayouter;
   List<String> _xLabels;
   double _availableWidth;
 
@@ -395,7 +434,6 @@ class XLayouter {
     double availableWidth,
   }) {
     _chartLayouter = chartLayouter;
-    _yLayouter = yLayouter;
     _xLabels = _chartLayouter._data.xLabels;
     _availableWidth = availableWidth;
   }
@@ -432,6 +470,7 @@ class XLayouter {
         .map((var output) => output.painter)
         .map((painting.TextPainter painter) => painter.size.height)
         .reduce(math.max);
+
   }
 }
 

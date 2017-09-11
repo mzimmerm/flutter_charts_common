@@ -150,10 +150,6 @@ class Range {
     return labels;
   }
 
-  LabelScalerFormatter scaleTo(LabelScalerFormatter other) {
-    // todo -2-2
-    return null;
-  }
 }
 
 // todo 00 document as encapsulating Y Labels, also as return from ?? and

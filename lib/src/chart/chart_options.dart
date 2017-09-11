@@ -40,6 +40,7 @@ class ChartOptions {
   final double xBottomMinTicksHeight = 6.0;
   final double yLeftMinTicksWidth = 6.0;
 
+  // todo -1-1 how is this used?
   /// Pad space around X labels. todo 00 separate top, bottom, left, right, and only keep those used
   final double xLabelsPadTB = 2.0; // to extended grid and bottom
   final double xLabelsPadLR = 2.0; // to the left, right
