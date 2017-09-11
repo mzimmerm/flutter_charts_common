@@ -116,6 +116,7 @@ class SimpleChartLayouter {
     horizGridLineYs =
         yOutputs.map((var output) => output.horizGridLineY).toList();
 
+    // todo 00 how is this used?
     labelXs = xOutputs.map((var output) => output.labelX).toList();
 
     labelYs = yOutputs.map((var output) => output.labelY).toList();
@@ -259,13 +260,13 @@ class YLayouter {
 
     for (var yIndex in seq) {
       double topY = gridStepHeight * yIndex;
-      var output = new YLayouterOutput();
+      var yOutput = new YLayouterOutput();
       // textPainterForLabel calls [TextPainter.layout]
-      output.painter = new LabelPainter(options: _chartLayouter._options)
+      yOutput.painter = new LabelPainter(options: _chartLayouter._options)
           .textPainterForLabel(yLabels[yIndex]);
-      output.horizGridLineY = topY + output.painter.height / 2;
-      output.labelY = topY;
-      outputs.add(output);
+      yOutput.horizGridLineY = topY + yOutput.painter.height / 2;
+      yOutput.labelY = topY;
+      outputs.add(yOutput);
     }
   }
 
@@ -309,21 +310,25 @@ class YLayouter {
 /// A Wrapper of [YLayouter] members that can be used by clients
 /// to layout y labels container.
 
-/// All positions are relative to the top of the container of y labels
+/// Generally, the owner of this object decides what the offsets are:
+///   - If owner is YLayouter, all positions are relative to the top of
+///     the container of y labels
+///   - If owner is parent [SimpleChartLayouter], all positions are relative
+///     to the top of the available [chartArea].
 class YLayouterOutput {
   /// Painter configured to paint one label
   painting.TextPainter painter;
 
-  ///  y offset of label middle point.
+  ///  y offset of Y label middle point.
   ///
   ///  Also is the y offset of point that should
-  /// show a "tick dash" for the label center on y axis.
+  /// show a "tick dash" for the label center on the y axis.
   ///
   /// First "tick dash" is on the first label, last on the last label,
   /// but y labels can be skipped.
   double horizGridLineY;
 
-  ///  y offset of label left point (drawing y labels).
+  ///  y offset of Y label left point.
   double labelY;
 }
 
@@ -410,12 +415,12 @@ class XLayouter {
 
     for (var xIndex in seq) {
       // double leftX = _gridStepWidth * xIndex;
-      var output = new XLayouterOutput();
-      output.painter = new LabelPainter(options: _chartLayouter._options)
+      var xOutput = new XLayouterOutput();
+      xOutput.painter = new LabelPainter(options: _chartLayouter._options)
           .textPainterForLabel(_xLabels[xIndex]);
-      output.vertGridLineX = (_gridStepWidth / 2) + _gridStepWidth * xIndex;
-      output.labelX = output.vertGridLineX - output.painter.width / 2;
-      outputs.add(output);
+      xOutput.vertGridLineX = (_gridStepWidth / 2) + _gridStepWidth * xIndex;
+      xOutput.labelX = xOutput.vertGridLineX - xOutput.painter.width / 2;
+      outputs.add(xOutput);
     }
 
     _xLabelsContainerWidth = outputs
@@ -438,17 +443,17 @@ class XLayouterOutput {
   /// Painter configured to paint one label
   painting.TextPainter painter;
 
-  ///  x offset of label middle point (see draw x labels).
+  ///  x offset of X label middle point.
   ///
   /// Also is the x offset of point that should
-  /// show a "tick dash" for the label center on x axis (unused).
+  /// show a "tick dash" for the label center on the x axis (unused).
   ///
   /// Also is the x offset of vertical grid lines. (see draw grid)
   ///
   /// First "tick dash" is on the first label, last on the last label.
   double vertGridLineX;
 
-  ///  x offset of label left point (see draw x labels).
+  ///  x offset of X label left point .
   double labelX;
 }
 

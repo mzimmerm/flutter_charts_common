@@ -65,16 +65,11 @@ class LineChartOptions extends ChartOptions {
 
 }
 
+// todo 00 separate to it's file OR merge random_chart_data to chart_data
 class RandomLineChartOptions extends LineChartOptions {
 
-  RandomLineChartOptions(RandomChartData randomChartData) {
-    int dataRowsCount = randomChartData.dataRows.length;
-
-    _setDataRowsRandomColors(dataRowsCount);
-  }
-
   /// Set up to first threee data rows (series) explicitly, rest randomly
-  void _setDataRowsRandomColors(int dataRowsCount) {
+  void setDataRowsRandomColors(int dataRowsCount) {
     if (dataRowsCount >= 1) {
       dataRowsColors.add(material.Colors.red);
     }
