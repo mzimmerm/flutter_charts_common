@@ -169,8 +169,11 @@ class SimpleChartLayouter {
   double get xLabelsContainerHeight => xLayouter._xLabelsContainerHeight;
 
   double get xLabelsContainerWidth => xLayouter._xLabelsContainerWidth;
+// todo -2-2 simplify and removed unused.
 
-  double get yLabelsContainerHeight => yLayouter._yLabelsContainerHeight;
+  double get yLabelsContainerHeight => yLayouter._availableHeight; // was: yLayouter._yLabelsContainerHeight;
+
+  double get xLabelsOffsetFromTop => yLabelsContainerHeight + _options.xBottomMinTicksHeight;
 
   double get yLabelsContainerWidth => yLayouter._yLabelsContainerWidth;
 
@@ -220,7 +223,6 @@ class YLayouter {
   /// Results of laying out the y axis labels, usabel by clients.
   List<YLayouterOutput> outputs = new List();
 
-  double _yLabelsContainerHeight;
   double _yLabelsContainerWidth;
   double _yLabelsMaxHeight;
   double _yAxisMinOffsetFromTop;
@@ -271,15 +273,6 @@ class YLayouter {
             .map((painting.TextPainter painter) => painter.size.width)
             .reduce(math.max) + 2 * _chartLayouter._options.yLabelsPadLR;
         // todo 0 ^^ the yLabelsPadLR must be used 1) in y labels print 2) add to dots calcs(?)
-
-    /// difference between top of first label and bottom of last todo 1 unreliable long term
-    _yLabelsContainerHeight =
-        outputs.map((var output) => output.labelY).reduce(math.max) -
-            outputs.map((var output) => output.labelY).reduce(math.min) +
-            outputs
-                .map((var output) => output.painter)
-                .map((painting.TextPainter painter) => painter.size.height)
-                .reduce(math.max);
 
     _yLabelsMaxHeight = outputs
         .map((var output) => output.painter)
