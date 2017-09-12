@@ -25,8 +25,8 @@ class ChartOptions {
   final List<ui.Color> dataRowsColors = new List<ui.Color>();
 
   /// Number of grid lines. Autolayout can decrease but not increase todo 00 decrease not implemented
-  final int minNumXGridLines = 1; // todo 00 not needed with auto layout?
-  final int minNumYGridLines = 4; // todo 00 not needed with auto layout?
+//  final int minNumXGridLines = 1; // todo 00 not needed with auto layout?
+//  final int minNumYGridLines = 4; // todo 00 not needed with auto layout?
 
   /// Color defaults
   final ui.Color gridLinesColor = material.Colors.grey;

@@ -106,6 +106,29 @@ void main() {
     expect(labels[3], 200.0);
     expect(labels[4], 300.0);
 
+    r = new Range(values: [-1000, 0, 1000, 2000], maxLabels: 0);
+    lsf = r.makeLabelsFromData();
+    c = lsf.dataRange;
+    labels = lsf.labelValues;
+    expect(c.min, -1000.0);
+    expect(c.max, 2000.0);
+    expect(labels.length, 4);
+    expect(labels[0], -1000.0);
+    expect(labels[1], 0.0);
+    expect(labels[2], 1000.0);
+    expect(labels[3], 2000.0);
+
+    r = new Range(values: [-1000, 0, 1000], maxLabels: 0);
+    lsf = r.makeLabelsFromData();
+    c = lsf.dataRange;
+    labels = lsf.labelValues;
+    expect(c.min, -1000.0);
+    expect(c.max, 1000.0);
+    expect(labels.length, 3);
+    expect(labels[0], -1000.0);
+    expect(labels[1], 0.0);
+    expect(labels[2], 1000.0);
+
     // todo 0 test pure fractions, and combination of pure fractions and mixed (whole.fraction)
   });
 

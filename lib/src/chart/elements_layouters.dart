@@ -20,7 +20,7 @@ class SimpleChartLayouter {
   ChartData _data;
 
   YLayouter
-      yLayouter; // todo 00 make private - all manipulation through YLayouterOutput
+  yLayouter; // todo 00 make private - all manipulation through YLayouterOutput
   XLayouter xLayouter;
 
   /// This layouter stores positions in the [GuidingPoints] instance,
@@ -72,23 +72,24 @@ class SimpleChartLayouter {
   ///     required to paint half of the topmost label.
   SimpleChartLayouter(
       {ui.Size chartArea, ChartData chartData, ChartOptions chartOptions}) {
-
     _data = chartData;
     _options = chartOptions;
 
     // ### 1. First call to YLayouter provides how much width is left for XLayouter (grid and X axis)
     var yLayouterFirst = new YLayouter(
-      chartLayouter: this,
-      availableHeight: chartArea.height,
-      yAxisMinOffsetFromTop: 0.0,
-      yAxisMinOffsetFromBottom:  0.0
+        chartLayouter: this,
+        availableHeight: chartArea.height,
+        yAxisMinOffsetFromTop: 0.0,
+        yAxisMinOffsetFromBottom: 0.0
 
     );
 
+    print("   ### YLayouter #1: before layout: ${yLayouterFirst}");
     yLayouterFirst.layout();
+    print("   ### YLayouter #1: after layout: ${yLayouterFirst}");
     _xLayouterMinOffsetLeft = yLayouterFirst._yLabelsContainerWidth;
-    _xLayouterMinOffsetTop  = yLayouterFirst._yLabelsMaxHeight / 2;
-    this.yLayouter          = yLayouterFirst;
+    _xLayouterMinOffsetTop = yLayouterFirst._yLabelsMaxHeight / 2;
+    this.yLayouter = yLayouterFirst;
 
     // ### 2. Knowing width required by YLayouter, we can layout X labels and grid.
     //        The available height is todo -1-1
@@ -97,6 +98,7 @@ class SimpleChartLayouter {
         // todo 1 add padding, from options
         availableWidth: chartArea.width - xLayouterOffsetLeft);
 
+    print("   ### XLayouter");
     xLayouter.layout();
     this.xLayouter = xLayouter;
 
@@ -113,15 +115,18 @@ class SimpleChartLayouter {
     //        on the bottom (which is not available for Y height)
     // First call to YLayouter provides how much width is left for XLayouter (grid and X axis)
     var yAxisMinOffsetFromTop = xLayouterOffsetTop; //  + _options.xTopMinTicksHeight;
-    var yAxisMinOffsetFromBottom = _options.xLabelsPadTB + _options.xBottomMinTicksHeight;
+    var yAxisMinOffsetFromBottom = _options.xLabelsPadTB +
+        _options.xBottomMinTicksHeight;
     var yLayouter = new YLayouter(
-      chartLayouter: this,
-      availableHeight: chartArea.height - xLabelsContainerHeight,
-      yAxisMinOffsetFromTop: yAxisMinOffsetFromTop,
-      yAxisMinOffsetFromBottom:  yAxisMinOffsetFromBottom
+        chartLayouter: this,
+        availableHeight: chartArea.height - xLabelsContainerHeight,
+        yAxisMinOffsetFromTop: yAxisMinOffsetFromTop,
+        yAxisMinOffsetFromBottom: yAxisMinOffsetFromBottom
     );
 
+    print("   ### YLayouter #2: before layout: ${yLayouter}");
     yLayouter.layout();
+    print("   ### YLayouter #2: after layout: ${yLayouter}");
     //_xLayouterMinOffsetLeft = yLayouter._yLabelsContainerWidth;
     //_xLayouterMinOffsetTop = yLayouter._yLabelsMaxHeight / 2;
     this.yLayouter = yLayouter;
@@ -169,11 +174,14 @@ class SimpleChartLayouter {
   double get xLabelsContainerHeight => xLayouter._xLabelsContainerHeight;
 
   double get xLabelsContainerWidth => xLayouter._xLabelsContainerWidth;
+
 // todo -2-2 simplify and removed unused.
 
-  double get yLabelsContainerHeight => yLayouter._availableHeight; // was: yLayouter._yLabelsContainerHeight;
+  double get yLabelsContainerHeight =>
+      yLayouter._availableHeight; // was: yLayouter._yLabelsContainerHeight;
 
-  double get xLabelsOffsetFromTop => yLabelsContainerHeight + _options.xBottomMinTicksHeight;
+  double get xLabelsOffsetFromTop =>
+      yLabelsContainerHeight + _options.xBottomMinTicksHeight;
 
   double get yLabelsContainerWidth => yLayouter._yLabelsContainerWidth;
 
@@ -226,8 +234,8 @@ class YLayouter {
   double _yLabelsContainerWidth;
   double _yLabelsMaxHeight;
   double _yAxisMinOffsetFromTop;
-      double _yAxisMinOffsetFromBottom;
-      double _yAxisAvailableHeight;
+  double _yAxisMinOffsetFromBottom;
+  double _yAxisAvailableHeight;
 
   /// Constructor gives this layouter access to it's
   /// layouting parent [chartLayouter], giving it [availableHeight],
@@ -246,16 +254,11 @@ class YLayouter {
     _chartLayouter = chartLayouter;
     _availableHeight = availableHeight;
 
-   _yAxisMinOffsetFromTop = yAxisMinOffsetFromTop;
-       _yAxisMinOffsetFromBottom = yAxisMinOffsetFromBottom;
-     _yAxisAvailableHeight =  _availableHeight - _yAxisMinOffsetFromTop - _yAxisMinOffsetFromBottom;
+    _yAxisMinOffsetFromTop = yAxisMinOffsetFromTop;
+    _yAxisMinOffsetFromBottom = yAxisMinOffsetFromBottom;
+    _yAxisAvailableHeight =
+        _availableHeight - _yAxisMinOffsetFromTop - _yAxisMinOffsetFromBottom;
   }
-
-  /// Number of horizontal lines on grid.
-  ///
-  /// Bottom line will be drawn at value of min(data), top line on max(data).
-  /// todo 2 : calculate this from data, based on grid height and reasonable y points.
-  int get numYGridLines => _chartLayouter._options.minNumYGridLines;
 
   /// Lays out the the area containing the Y axis.
   ///
@@ -269,10 +272,10 @@ class YLayouter {
       layoutAutomatically();
     }
     _yLabelsContainerWidth = outputs
-            .map((var output) => output.painter)
-            .map((painting.TextPainter painter) => painter.size.width)
-            .reduce(math.max) + 2 * _chartLayouter._options.yLabelsPadLR;
-        // todo 0 ^^ the yLabelsPadLR must be used 1) in y labels print 2) add to dots calcs(?)
+        .map((var output) => output.painter)
+        .map((painting.TextPainter painter) => painter.size.width)
+        .reduce(math.max) + 2 * _chartLayouter._options.yLabelsPadLR;
+    // todo 0 ^^ the yLabelsPadLR must be used 1) in y labels print 2) add to dots calcs(?)
 
     _yLabelsMaxHeight = outputs
         .map((var output) => output.painter)
@@ -281,7 +284,6 @@ class YLayouter {
   }
 
   void layoutManually() {
-
     // Evenly divided available height to all labels.
     // Label height includes any spacing on each side.
     List<String> yLabels = _chartLayouter._data.yLabels;
@@ -303,15 +305,17 @@ class YLayouter {
   }
 
   void layoutAutomatically() {
-
     List flatData = _chartLayouter._data.dataRows.expand((i) => i).toList();
     ChartOptions options = _chartLayouter._options;
 
     Range range = new Range(values: flatData, maxLabels: 10);
     // todo 00 refactor this block to one method or add a method for it
     LabelScalerFormatter labelScaler = range.makeLabelsFromData();
+    // revert toScaleMin/Max to accomodate y axis starting from top
     labelScaler.scaleLabelValuesTo(
-        toScaleMin: _yAxisMinOffsetFromTop, toScaleMax: _yAxisAvailableHeight + _yAxisMinOffsetFromTop, chartOptions: options);
+        toScaleMin: _yAxisMinOffsetFromTop + _yAxisAvailableHeight,
+        toScaleMax: _yAxisMinOffsetFromTop ,
+        chartOptions: options);
     labelScaler.makeLabelsPresentable(chartOptions: options);
 
     // todo -2-2 is this needed?
@@ -320,6 +324,7 @@ class YLayouter {
         yUnscaledGridValues: labelScaler.labelValues);
 
     for (LabelInfo labelInfo in labelScaler.labelInfos) {
+      print("       ### YLayouter.layoutAutomatically(), labelInfo=$labelInfo");
       double topY = labelInfo.scaledLabelValue;
       var output = new YLayouterOutput();
       // textPainterForLabel calls [TextPainter.layout]
@@ -329,6 +334,17 @@ class YLayouter {
       output.labelY = topY;
       outputs.add(output);
     }
+  }
+
+  String toString() {
+    return
+      ", _availableHeight = ${_availableHeight}" +
+          ", _yLabelsContainerWidth = ${_yLabelsContainerWidth}" +
+          ", _yLabelsMaxHeight = ${_yLabelsMaxHeight}" +
+          ", _yAxisMinOffsetFromTop = ${_yAxisMinOffsetFromTop}" +
+          ", _yAxisMinOffsetFromBottom = ${_yAxisMinOffsetFromBottom}" +
+          ", _yAxisAvailableHeight = ${_yAxisAvailableHeight}"
+    ;
   }
 }
 
@@ -463,7 +479,6 @@ class XLayouter {
         .map((var output) => output.painter)
         .map((painting.TextPainter painter) => painter.size.height)
         .reduce(math.max);
-
   }
 }
 

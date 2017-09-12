@@ -30,8 +30,9 @@ class Range {
   }
 
   /// superior and inferior closure -
-  Interval get _closure => new Interval(
-      _values.reduce(math.min), _values.reduce(math.max), true, true);
+  Interval get _closure =>
+      new Interval(
+          _values.reduce(math.min), _values.reduce(math.max), true, true);
 
   // todo 00 document
   /// Automatically generates unscaled label values from data.
@@ -84,6 +85,8 @@ class Range {
 
     List<num> labels = _distributeLabelsIn(new Interval(from, to));
 
+    print(" ################ makeLabelsFromData: For ###_values=$_values found ###labeValues=${labels} and ###dataRange= ${from} to ${to} ");
+
     return new LabelScalerFormatter(
         dataRange: new Interval(from, to),
         labeValues: labels);
@@ -130,7 +133,7 @@ class Range {
       // min is negative, max is positive - need added logic
       if (powerMax == powerMin) {
         for (int l = signMin * coeffMin; l <= signMax * coeffMax; l++) {
-          labels.add(l * signMin * math.pow(10, power));
+          labels.add(l * math.pow(10, power));
         }
       } else if (powerMax < powerMin) {
         for (int l = signMin * coeffMin; l <= 1; l++) {
@@ -165,14 +168,19 @@ class LabelScalerFormatter {
 
   LabelScalerFormatter({Interval dataRange, List<num> labeValues}) {
     this.dataRange = dataRange;
-    this.labelInfos = labeValues.map((value) => new LabelInfo(value, this)).toList();
+    this.labelInfos =
+        labeValues.map((value) => new LabelInfo(value, this)).toList();
   }
 
   /// Self-scale the RangeOutput to the scale of the available chart size.
-  void scaleLabelValuesTo(
-      {double toScaleMin, double toScaleMax, ChartOptions chartOptions}) {
+  void scaleLabelValuesTo({
+    double toScaleMin,
+    double toScaleMax,
+    ChartOptions chartOptions})
+  {
     labelInfos
-        .map((var labelInfo) => labelInfo._scaleLabelValueTo(
+        .map((var labelInfo) =>
+        labelInfo._scaleLabelValueTo(
             toScaleMin: toScaleMin,
             toScaleMax: toScaleMax,
             chartOptions: chartOptions))
@@ -182,7 +190,7 @@ class LabelScalerFormatter {
   void makeLabelsPresentable({ChartOptions chartOptions}) {
     labelInfos
         .map((var labelInfo) =>
-            labelInfo.formattedLabel = labelInfo.scaledLabelValue.toString())
+    labelInfo.formattedLabel = labelInfo.scaledLabelValue.toString())
         .toList();
   }
 
@@ -190,15 +198,37 @@ class LabelScalerFormatter {
   List<num> get labelValues =>
       labelInfos.map((labelInfo) => labelInfo.labelValue).toList();
 
+  Interval get labelRange => new Interval(labelValues.reduce(math.min),  labelValues.reduce(math.max));
+
+  Interval get labelAndDataRangeMerged => labelRange.merge(dataRange);
+
   List<String> get formattedLabels =>
       labelInfos.map((labelInfo) => labelInfo.formattedLabel).toList();
 
   List<num> get scaledLabelValues =>
       labelInfos.map((labelInfo) => labelInfo.scaledLabelValue).toList();
+
+
 }
 
 /// Manages labels and their values: scaled in , unscaled, and presented (formatted) todo 00 document
 /// todo 00 review privacy
+///
+/// Note:
+///
+///    - YLabels critical issue: There are 3 intervals (example values in text):
+///     - We have these scales:
+///       - *LabelScalerFormatter.dataRange* e.g.  ###dataRange= [-600.0, 1800.0]  from data _values=[-600.0 ....  1800.0]
+///       - *LabelScalerFormatter.labelRange* = [-1000, 1000] was correctly deduced
+///       - *LabelScalerFormatter.labelAndDataRangeMerged* =  [-1000, 1800] - merge of the above
+///       - *_yAxisAvailableHeight* = 376.0
+///       - *Further, y axis must start at _yAxisMinOffsetFromTop = 8.0*
+///     - *So, we need to*:
+///       - 1. *Map / scale all LabelScalerFormatter.labelValues using:*
+///         - /ownScale=labelAndDataRangeMerged=[-1000, 1800]/,
+///         - /toScale=[8, 8+376]/;
+///       - 2. yAxis scale is [8, 8+376]=[_yAxisMinOffsetFromTop,  _yAxisMinOffsetFromTop + _yAxisAvailableHeight]
+
 class LabelInfo {
   LabelInfo(this.labelValue, this.parentScaler);
 
@@ -209,25 +239,41 @@ class LabelInfo {
 
   /// Label actually showing on axis (Y axis); typically a value with unit.
   ///
-  /// Formatted (and on same scale as) [scaledLabelValue].
+  /// Formatted label is just formatted [scaledLabelValue].
   String formattedLabel;
 
+  /// Scaled label value.
+  ///
+  /// [scaledLabelValue]s are on the scale of y axis length.
   num scaledLabelValue;
 
   /// Self-scale the RangeOutput to the scale of the available chart size.
-  void _scaleLabelValueTo(
-      {double toScaleMin, double toScaleMax, ChartOptions chartOptions}) {
-    Interval dataLabelEnvelope = parentScaler.dataRange.merge(new Interval(
-        parentScaler.labelValues.reduce(math.min),
-        parentScaler.labelValues.reduce(math.max)));
+  void _scaleLabelValueTo({
+    double toScaleMin,
+        double toScaleMax,
+        ChartOptions chartOptions})
+  {
+
+    print("            ### Scaling $this using: " +
+        "ownScaleMin: ${parentScaler.labelAndDataRangeMerged.min.toDouble()}, " +
+        "ownScaleMax: ${parentScaler.labelAndDataRangeMerged.max.toDouble()}, " +
+        "toScaleMin: ${toScaleMin.toDouble()}, " +
+        "toScaleMax: ${toScaleMax.toDouble()} ");
 
     // todo 00 consider what to do about the toDouble() - may want to ensure higher up
     scaledLabelValue = scaleValue(
         value: labelValue.toDouble(),
-        ownScaleMin: dataLabelEnvelope.min.toDouble(),
-        ownScaleMax: dataLabelEnvelope.max.toDouble(),
+        ownScaleMin: parentScaler.labelAndDataRangeMerged.min.toDouble(),
+        ownScaleMax: parentScaler.labelAndDataRangeMerged.max.toDouble(),
         toScaleMin: toScaleMin.toDouble(),
         toScaleMax: toScaleMax.toDouble());
+  }
+
+  String toString() {
+    return super.toString() +
+        " scaledLabelValue=${this.scaledLabelValue}," +
+        " labelValue=${this.labelValue}," +
+        " formattedLabel=${this.formattedLabel}";
   }
 }
 
@@ -271,9 +317,10 @@ class Poly {
   int get floorAtMaxPower =>
       (numToDec(coeffAtMaxPower) * numToDec(math.pow(10, maxPower))).toInt();
 
-  int get ceilAtMaxPower => ((numToDec(coeffAtMaxPower) + dec('1')) *
+  int get ceilAtMaxPower =>
+      ((numToDec(coeffAtMaxPower) + dec('1')) *
           numToDec(math.pow(10, maxPower)))
-      .toInt();
+          .toInt();
 
   /// Position of first significant non zero digit.
   ///
