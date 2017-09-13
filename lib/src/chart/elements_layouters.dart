@@ -114,8 +114,9 @@ class SimpleChartLayouter {
     //        is only known after XLayouter provided height ov xLabels
     //        on the bottom (which is not available for Y height)
     // First call to YLayouter provides how much width is left for XLayouter (grid and X axis)
+    
     var yAxisMinOffsetFromTop = xLayouterOffsetTop; //  + _options.xTopMinTicksHeight;
-    var yAxisMinOffsetFromBottom = _options.xLabelsPadTB +
+    var yAxisMinOffsetFromBottom = 2 * _options.xLabelsPadTB +
         _options.xBottomMinTicksHeight;
     var yLayouter = new YLayouter(
         chartLayouter: this,
@@ -137,7 +138,7 @@ class SimpleChartLayouter {
       var yOutput = new YLayouterOutput();
       yOutput.painter = output.painter;
       yOutput.horizGridLineY = output.horizGridLineY;
-      yOutput.labelY = output.horizGridLineY;
+      yOutput.labelY = output.labelY;
       return yOutput;
     }).toList();
 
@@ -175,10 +176,7 @@ class SimpleChartLayouter {
 
   double get xLabelsContainerWidth => xLayouter._xLabelsContainerWidth;
 
-// todo -2-2 simplify and removed unused.
-
-  double get yLabelsContainerHeight =>
-      yLayouter._availableHeight; // was: yLayouter._yLabelsContainerHeight;
+  double get yLabelsOffsetFromLeft => _options.yLabelsPadLR;
 
   double get xLabelsOffsetFromTop =>
       yLabelsContainerHeight + _options.xBottomMinTicksHeight;
@@ -186,6 +184,11 @@ class SimpleChartLayouter {
   double get yLabelsContainerWidth => yLayouter._yLabelsContainerWidth;
 
   double get yLabelsMaxHeight => yLayouter._yLabelsMaxHeight;
+
+// todo -2-2 simplify and removed unused.
+
+  double get yLabelsContainerHeight =>
+      yLayouter._availableHeight; // was: yLayouter._yLabelsContainerHeight;
 
   /// Calculates Y coordinate of the passed [value],
   /// scaling it to the coordinates of the viewport (more precisely,

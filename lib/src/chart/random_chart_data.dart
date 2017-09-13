@@ -46,30 +46,6 @@ class RandomChartData extends ChartData {
     validate();
   }
 
-  /* todo 00 remove
-  RandomChartData.fromXLabels({
-    List<String> xLabels,
-    int numDataRows = 4,
-    bool overlapYValues = false,
-  })
-  {
-    this.xLabels = xLabels;
-
-    _numXLabels = xLabels.length;
-    _numDataRows = numDataRows;
-    _useMonthNames = false;
-    // todo 0 : _maxLabelLength = xLabels.map(e => e.size()).reduce(max);
-    _maxLabelLength = 20;
-    _overlapYValues = overlapYValues;
-
-    _generateYValues();
-
-    _generateYLabels();
-
-    validate();
-  }
-
-*/
   /// Generate list of "random" [xLabels] as monthNames
   ///
   ///
@@ -108,6 +84,7 @@ class RandomChartData extends ChartData {
               pushUpBy: (rowIndex - 1) * pushUpStep,
               scale: scale));
     }
+    print("Random generator data: ${_flattenData()}.");
   }
 
   List<double> _oneDataRow(
@@ -117,6 +94,10 @@ class RandomChartData extends ChartData {
       dataRow.add((rgen.nextInt(max) + pushUpBy) * scale);
     }
     return dataRow;
+  }
+
+  List<double> _flattenData() {
+    return this.dataRows.expand((i) => i).toList();
   }
 
 }

@@ -42,12 +42,12 @@ class ChartOptions {
 
   // todo -1-1 how is this used?
   /// Pad space around X labels. todo 00 separate top, bottom, left, right, and only keep those used
-  final double xLabelsPadTB = 2.0; // to extended grid and bottom
-  final double xLabelsPadLR = 2.0; // to the left, right
+  final double xLabelsPadTB = 12.0; // top and bottom
+  final double xLabelsPadLR = 12.0; // left and right
 
   /// Pad space around Y labels.todo 00 separate top, bottom, left, right, and only keep those used
-  final double yLabelsPadTB = 2.0;
-  final double yLabelsPadLR = 2.0;
+  final double yLabelsPadTB = 12.0;
+  final double yLabelsPadLR = 12.0;
 
   final String yLabelUnits = "";
 
