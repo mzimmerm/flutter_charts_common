@@ -114,13 +114,13 @@ class SimpleChartLayouter {
     //        is only known after XLayouter provided height ov xLabels
     //        on the bottom (which is not available for Y height)
     // First call to YLayouter provides how much width is left for XLayouter (grid and X axis)
-    
+
     var yAxisMinOffsetFromTop = xLayouterOffsetTop; //  + _options.xTopMinTicksHeight;
     var yAxisMinOffsetFromBottom = 2 * _options.xLabelsPadTB +
         _options.xBottomMinTicksHeight;
     var yLayouter = new YLayouter(
         chartLayouter: this,
-        availableHeight: chartArea.height - xLabelsContainerHeight,
+        availableHeight: chartArea.height - xLayouter._xLabelsContainerHeight,
         yAxisMinOffsetFromTop: yAxisMinOffsetFromTop,
         yAxisMinOffsetFromBottom: yAxisMinOffsetFromBottom
     );
@@ -128,8 +128,7 @@ class SimpleChartLayouter {
     print("   ### YLayouter #2: before layout: ${yLayouter}");
     yLayouter.layout();
     print("   ### YLayouter #2: after layout: ${yLayouter}");
-    //_xLayouterMinOffsetLeft = yLayouter._yLabelsContainerWidth;
-    //_xLayouterMinOffsetTop = yLayouter._yLabelsMaxHeight / 2;
+
     this.yLayouter = yLayouter;
 
     // ### 4. Recalculate offsets for this parent layouter
@@ -172,23 +171,15 @@ class SimpleChartLayouter {
   double get gridHorizontalLinesToX =>
       vertGridLineXs.reduce(math.max) + yRightTicksWidth;
 
-  double get xLabelsContainerHeight => xLayouter._xLabelsContainerHeight;
-
-  double get xLabelsContainerWidth => xLayouter._xLabelsContainerWidth;
-
   double get yLabelsOffsetFromLeft => _options.yLabelsPadLR;
 
   double get xLabelsOffsetFromTop =>
-      yLabelsContainerHeight + _options.xBottomMinTicksHeight;
-
-  double get yLabelsContainerWidth => yLayouter._yLabelsContainerWidth;
+      yLayouter._availableHeight + _options.xBottomMinTicksHeight;
 
   double get yLabelsMaxHeight => yLayouter._yLabelsMaxHeight;
 
 // todo -2-2 simplify and removed unused.
 
-  double get yLabelsContainerHeight =>
-      yLayouter._availableHeight; // was: yLayouter._yLabelsContainerHeight;
 
   /// Calculates Y coordinate of the passed [value],
   /// scaling it to the coordinates of the viewport (more precisely,
@@ -278,7 +269,6 @@ class YLayouter {
         .map((var output) => output.painter)
         .map((painting.TextPainter painter) => painter.size.width)
         .reduce(math.max) + 2 * _chartLayouter._options.yLabelsPadLR;
-    // todo 0 ^^ the yLabelsPadLR must be used 1) in y labels print 2) add to dots calcs(?)
 
     _yLabelsMaxHeight = outputs
         .map((var output) => output.painter)
@@ -397,9 +387,6 @@ class YLayouterOutput {
 ///   - Layouters may use Painters, for example for text (`TextSpan`),
 ///     for which we do not know any sizing needed for the Layouters,
 ///     until we call `TextPainter(text: textSpan).layout()`.
-///   - [availableWidth], [xLabels], [options] is passed as arguments
-///   - [xLabelsContainerHeight], [_gridStepWidth] is calculated
-///   - depends on TextPainter
 ///     provided by LabelPainter.textPainterForLabel(String string)
 ///   - todo add iterations that allow layout size to be negotiated.
 ///     The above requires a parent layouter or similar object, that can ask
@@ -428,7 +415,7 @@ class XLayouter {
   /// Results of laying out the x axis labels, usabel by clients.
   List<XLayouterOutput> outputs = new List();
 
-  double _xLabelsContainerWidth; // todo 00 unused
+  double _xLabelsContainerWidthUnused;
   double _xLabelsContainerHeight;
   double _gridStepWidth;
 
@@ -473,15 +460,10 @@ class XLayouter {
       outputs.add(xOutput);
     }
 
-    _xLabelsContainerWidth = outputs
-        .map((var output) => output.painter)
-        .map((painting.TextPainter painter) => painter.size.width)
-        .reduce((a, b) => a + b);
-
     _xLabelsContainerHeight = outputs
         .map((var output) => output.painter)
         .map((painting.TextPainter painter) => painter.size.height)
-        .reduce(math.max);
+        .reduce(math.max) + 2 * _chartLayouter._options.xLabelsPadTB;
   }
 }
 
