@@ -85,7 +85,8 @@ class Range {
 
     List<num> labels = _distributeLabelsIn(new Interval(from, to));
 
-    print(" ################ makeLabelsFromData: For ###_values=$_values found ###labeValues=${labels} and ###dataRange= ${from} to ${to} ");
+    print(
+        " ################ makeLabelsFromData: For ###_values=$_values found ###labeValues=${labels} and ###dataRange= ${from} to ${to} ");
 
     return new LabelScalerFormatter(
         dataRange: new Interval(from, to),
@@ -166,18 +167,33 @@ class LabelScalerFormatter {
 
   List<LabelInfo> labelInfos;
 
+  Function scalingFunction;  // todo -1-1 is used?
+
+  double toScaleMin;
+  double toScaleMax;
+
   LabelScalerFormatter({Interval dataRange, List<num> labeValues}) {
     this.dataRange = dataRange;
     this.labelInfos =
         labeValues.map((value) => new LabelInfo(value, this)).toList();
+
   }
 
-  /// Self-scale the RangeOutput to the scale of the available chart size.
+  // todo -1-1 document as the scaler of all Y values
+  double scaleY( {double value}) {
+    return scaleValue(value: value.toDouble(),
+        ownScaleMin: this.labelAndDataRangeMerged.min.toDouble(),
+        ownScaleMax: this.labelAndDataRangeMerged.max.toDouble(),
+        toScaleMin:  this.toScaleMin,
+        toScaleMax:  this.toScaleMax);
+  }
+
+  // todo -1-1 remove the toScaleMin/Max - now args. But tests need fixing
+    /// Self-scale the RangeOutput to the scale of the available chart size.
   void scaleLabelValuesTo({
     double toScaleMin,
     double toScaleMax,
-    ChartOptions chartOptions})
-  {
+    ChartOptions chartOptions}) {
     labelInfos
         .map((var labelInfo) =>
         labelInfo._scaleLabelValueTo(
@@ -185,30 +201,38 @@ class LabelScalerFormatter {
             toScaleMax: toScaleMax,
             chartOptions: chartOptions))
         .toList();
+
+    if (toScaleMin > toScaleMax) {
+      // we are inverting scales, so invert labels.
+      labelInfos = labelInfos.reversed.toList();
+    }
   }
 
   void makeLabelsPresentable({ChartOptions chartOptions}) {
-    labelInfos
-        .map((var labelInfo) =>
-    labelInfo.formattedLabel = labelInfo.scaledLabelValue.toString())
-        .toList();
+    labelInfos.forEach((labelInfo) {
+          labelInfo.formattedLabel =
+              chartOptions.valueToLabel(labelInfo.labelValue);
+    });
   }
 
   // ### Helper accessors to collection of LabelInfos
   List<num> get labelValues =>
-      labelInfos.map((labelInfo) => labelInfo.labelValue).toList();
+      labelInfos.map((labelInfo) => labelInfo.labelValue)
+          .toList(); // todo -1-1 used in tests but nowhere else?
 
-  Interval get labelRange => new Interval(labelValues.reduce(math.min),  labelValues.reduce(math.max));
+  Interval get labelRange =>
+      new Interval(labelValues.reduce(math.min), labelValues.reduce(math.max));
 
   Interval get labelAndDataRangeMerged => labelRange.merge(dataRange);
 
+/* todo -1-1 remove
   List<String> get formattedLabels =>
       labelInfos.map((labelInfo) => labelInfo.formattedLabel).toList();
 
   List<num> get scaledLabelValues =>
       labelInfos.map((labelInfo) => labelInfo.scaledLabelValue).toList();
 
-
+*/
 }
 
 /// Manages labels and their values: scaled in , unscaled, and presented (formatted) todo 00 document
@@ -250,23 +274,30 @@ class LabelInfo {
   /// Self-scale the RangeOutput to the scale of the available chart size.
   void _scaleLabelValueTo({
     double toScaleMin,
-        double toScaleMax,
-        ChartOptions chartOptions})
-  {
-
+    double toScaleMax,
+    ChartOptions chartOptions}) {
     print("            ### Scaling $this using: " +
-        "ownScaleMin: ${parentScaler.labelAndDataRangeMerged.min.toDouble()}, " +
-        "ownScaleMax: ${parentScaler.labelAndDataRangeMerged.max.toDouble()}, " +
+       // "ownScaleMin: ${parentScaler.labelAndDataRangeMerged.min
+       //     .toDouble()}, " +
+       // "ownScaleMax: ${parentScaler.labelAndDataRangeMerged.max
+       //     .toDouble()}, " +
         "toScaleMin: ${toScaleMin.toDouble()}, " +
         "toScaleMax: ${toScaleMax.toDouble()} ");
 
     // todo 00 consider what to do about the toDouble() - may want to ensure higher up
+    /*
     scaledLabelValue = scaleValue(
         value: labelValue.toDouble(),
         ownScaleMin: parentScaler.labelAndDataRangeMerged.min.toDouble(),
         ownScaleMax: parentScaler.labelAndDataRangeMerged.max.toDouble(),
         toScaleMin: toScaleMin.toDouble(),
         toScaleMax: toScaleMax.toDouble());
+    */
+    parentScaler.toScaleMin = toScaleMin.toDouble();
+    parentScaler.toScaleMax = toScaleMax.toDouble();
+
+    scaledLabelValue = parentScaler.scaleY(value: labelValue.toDouble());
+
   }
 
   String toString() {

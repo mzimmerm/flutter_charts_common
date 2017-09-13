@@ -34,6 +34,7 @@ class SimpleChartLayouter {
   /// chart's painter (in which this layouter is used).
   List<XLayouterOutput> xOutputs = new List();
   List<YLayouterOutput> yOutputs = new List();
+  LabelScalerFormatter  yScaler;
 
   List<double> vertGridLineXs = new List();
   List<double> horizGridLineYs = new List();
@@ -193,7 +194,7 @@ class SimpleChartLayouter {
     double toScaleMin = horizGridLineYs.reduce(math.min);
     double toScaleMax = horizGridLineYs.reduce(math.max);
 
-    return scaleValue(
+    return scaleValue( // todo -2-2 Unused, remove
         value: value,
         ownScaleMin: ownScaleMin,
         ownScaleMax: ownScaleMax,
@@ -201,10 +202,6 @@ class SimpleChartLayouter {
         toScaleMax: toScaleMax);
   }
 
-  // todo -1-1
-  onChangeYGridValues({List yGridValues, List yUnscaledGridValues}) {
-    // This new method must shift the passed yGridValues using GuidingPoints.yLayouterTL (whatis it???)
-  }
 }
 
 /// Auto-layouter of the area containing Y axis.
@@ -304,17 +301,20 @@ class YLayouter {
     Range range = new Range(values: flatData, maxLabels: 10);
     // todo 00 refactor this block to one method or add a method for it
     LabelScalerFormatter labelScaler = range.makeLabelsFromData();
+    labelScaler.toScaleMin =  _yAxisMinOffsetFromTop + _yAxisAvailableHeight;
+    labelScaler.toScaleMax =  _yAxisMinOffsetFromTop ;
+
+    // retain this scaler to also scale coordinates of dots
+    _chartLayouter.yScaler =  labelScaler;
+
     // revert toScaleMin/Max to accomodate y axis starting from top
+
+    // todo -1-1 make this one method; or maybe just remobe teh scaleLabelValuesTo and use map on LabelInfo
     labelScaler.scaleLabelValuesTo(
-        toScaleMin: _yAxisMinOffsetFromTop + _yAxisAvailableHeight,
-        toScaleMax: _yAxisMinOffsetFromTop ,
+        toScaleMin: labelScaler.toScaleMin,
+        toScaleMax: labelScaler.toScaleMax ,
         chartOptions: options);
     labelScaler.makeLabelsPresentable(chartOptions: options);
-
-    // todo -2-2 is this needed?
-    _chartLayouter.onChangeYGridValues(
-        yGridValues: labelScaler.scaledLabelValues,
-        yUnscaledGridValues: labelScaler.labelValues);
 
     for (LabelInfo labelInfo in labelScaler.labelInfos) {
       print("       ### YLayouter.layoutAutomatically(), labelInfo=$labelInfo");
@@ -415,7 +415,6 @@ class XLayouter {
   /// Results of laying out the x axis labels, usabel by clients.
   List<XLayouterOutput> outputs = new List();
 
-  double _xLabelsContainerWidthUnused;
   double _xLabelsContainerHeight;
   double _gridStepWidth;
 
