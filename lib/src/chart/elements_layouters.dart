@@ -93,7 +93,8 @@ class SimpleChartLayouter {
     this.yLayouter = yLayouterFirst;
 
     // ### 2. Knowing width required by YLayouter, we can layout X labels and grid.
-    //        The available height is todo -1-1
+    //        The available height is only marginally relevant (if there was
+    //        not enough height for x labels.
     var xLayouter = new XLayouter(
         chartLayouter: this,
         // todo 1 add padding, from options
@@ -179,29 +180,6 @@ class SimpleChartLayouter {
 
   double get yLabelsMaxHeight => yLayouter._yLabelsMaxHeight;
 
-// todo -2-2 simplify and removed unused.
-
-
-  /// Calculates Y coordinate of the passed [value],
-  /// scaling it to the coordinates of the viewport (more precisely,
-  /// to coordinates stored in [_horizGridLineYs] which represent grid
-  /// positions.
-  ///
-  /// The passed [value] should be a unscaled data value.
-  double yCoordinateOf(double value) {
-    double ownScaleMin = _data.minData();
-    double ownScaleMax = _data.maxData();
-    double toScaleMin = horizGridLineYs.reduce(math.min);
-    double toScaleMax = horizGridLineYs.reduce(math.max);
-
-    return scaleValue( // todo -2-2 Unused, remove
-        value: value,
-        ownScaleMin: ownScaleMin,
-        ownScaleMax: ownScaleMax,
-        toScaleMin: toScaleMin,
-        toScaleMax: toScaleMax);
-  }
-
 }
 
 /// Auto-layouter of the area containing Y axis.
@@ -260,11 +238,8 @@ class YLayouter {
     double toScaleMax = _yAxisMinOffsetFromTop;
 
     if (_chartLayouter._options.doManualLayoutUsingYLabels) {
-      // Evenly divided available height to all labels.
-      // Label height includes any spacing on each side.
       layoutManually(toScaleMin: toScaleMin, toScaleMax: toScaleMax);
     } else {
-      // auto layout acc to range scale
       layoutAutomatically(toScaleMin: toScaleMin, toScaleMax: toScaleMax);
     }
     _yLabelsContainerWidth = outputs
@@ -278,15 +253,10 @@ class YLayouter {
         .reduce(math.max);
   }
 
+  /// Manually layout Y axis by evenly dividing available height to all Y labels.
   void layoutManually({double toScaleMin, double toScaleMax}) {
-    // Evenly divided available height to all labels.
-    // Label height includes any spacing on each side.
 
     List flatData = _chartLayouter._data.dataRows.expand((i) => i).toList();
-    //ChartOptions options = _chartLayouter._options;
-//    Range range = new Range(
-//        values: flatData, chartOptions: _chartLayouter._options, maxLabels: 10);
-// todo -1 : simplify and merge with auto layout
     var dataRange = new Interval(
         flatData.reduce(math.min), flatData.reduce(math.max));
 
@@ -309,29 +279,18 @@ class YLayouter {
         toScaleMax: toScaleMax,
         chartOptions: _chartLayouter._options);
 
-    labelScaler.setLabelValuesForManualLayout( yLabels, yLabelsDividedInYAxisRange);
+    labelScaler.setLabelValuesForManualLayout( labelValues: yLabels, scaledLabelValues: yLabelsDividedInYAxisRange);
     //labelScaler.scaleLabelInfos();
     labelScaler.makeLabelsPresentable();
 
-    // Retain this scaler to be accessible to client code,
-    // e.g. for coordinates of value dots.
-    _chartLayouter.yScaler = labelScaler;
-
-    for (LabelInfo labelInfo in labelScaler.labelInfos) {
-      double topY = labelInfo.scaledLabelValue;
-      var output = new YLayouterOutput();
-      // textPainterForLabel calls [TextPainter.layout]
-      output.painter = new LabelPainter(options: _chartLayouter._options)
-          .textPainterForLabel(labelInfo.formattedYLabel);
-      output.horizGridLineY = topY;
-      output.labelY = topY - output.painter.height / 2;
-      outputs.add(output);
-    }
+    _commonLayout(labelScaler);
   }
 
+  /// Generate labels from data, and auto layout
+  /// Y axis according to data range, labels range, and display range
   void layoutAutomatically({double toScaleMin, double toScaleMax}) {
+
     List flatData = _chartLayouter._data.dataRows.expand((i) => i).toList();
-    // ChartOptions options = _chartLayouter._options;
 
     Range range = new Range(
         values: flatData, chartOptions: _chartLayouter._options, maxLabels: 10);
@@ -342,6 +301,10 @@ class YLayouter {
         toScaleMax: toScaleMax
     );
 
+    _commonLayout(labelScaler);
+  }
+
+  void _commonLayout(LabelScalerFormatter labelScaler) {
     // Retain this scaler to be accessible to client code,
     // e.g. for coordinates of value dots.
     _chartLayouter.yScaler = labelScaler;

@@ -191,8 +191,6 @@ class LabelScalerFormatter {
   /// Maintains labels created from data values, scaled and unscaled.
   List<LabelInfo> labelInfos;
 
-  Function scalingFunction; // todo -1-1 is used?
-
   double _toScaleMin;
   double _toScaleMax;
   ChartOptions _options;
@@ -225,7 +223,7 @@ class LabelScalerFormatter {
 
   /// Self-scales the Y label values in [labelInfos] to the scale
   /// of the available chart size.
-  /// todo -1 maybe make private and wrap - need for manual layout - better, create method for manual layout and move code from layouters here
+  /// todo 1 maybe make private and wrap - need for manual layout - better, create method for manual layout and move code from layouters here
   void scaleLabelInfos() {
     labelInfos.forEach((var labelInfo) =>
         labelInfo._scaleLabelValue()
@@ -237,13 +235,12 @@ class LabelScalerFormatter {
     }
   }
 
-  // todo -1 simplify
-  void setLabelValuesForManualLayout(List labelValues, List scaledLabelValues)  {
+  /// Manual layout helper, forces values and scaled values.
+  void setLabelValuesForManualLayout({List labelValues, List scaledLabelValues})  {
     for (int i = 0; i < labelValues.length; i++) {
       labelInfos[i].labelValue = labelValues[i];
       labelInfos[i].scaledLabelValue = scaledLabelValues[i];
     }
-
 
     if (_toScaleMin > _toScaleMax) {
       // we are inverting scales, so invert labels.
@@ -254,7 +251,7 @@ class LabelScalerFormatter {
   /// Format labels in a way suitable for presentation on the Y axis.
   ///
   /// [ChartOptions] allow for customization.
-  /// todo -1 maybe make private and wrap - need for manual layout - better, create method for manual layout and move code from layouters here
+  /// todo 1 maybe make private and wrap - need for manual layout - better, create a constructor for manual layout and move code from layouters here
   void makeLabelsPresentable() {
     labelInfos.forEach((labelInfo) {
       labelInfo.formattedYLabel =
