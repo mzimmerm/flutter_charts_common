@@ -21,12 +21,14 @@ class ChartOptions {
   ///   -  `false` is default
   bool doManualLayoutUsingYLabels = false;
 
+  /// Shows largest value on very top of the chart grid, to save space.
+  bool largestValuePointOnVeryTop = true; // false not supported
+
   /// Colors corresponding to each data row (series) in [ChartData].
   final List<ui.Color> dataRowsColors = new List<ui.Color>();
 
-  /// Number of grid lines. Autolayout can decrease but not increase todo 00 decrease not implemented
-//  final int minNumXGridLines = 1; // todo 00 not needed with auto layout?
-//  final int minNumYGridLines = 4; // todo 00 not needed with auto layout?
+  /// Number of grid lines and y axis labels. Not implemented
+  final int maxNumYLabels = 4;
 
   /// Color defaults
   final ui.Color gridLinesColor = material.Colors.grey;
@@ -55,8 +57,7 @@ class ChartOptions {
 
   String valueToLabel(num value) {
     // if there are >= 3 < 6 decimal digits, replace with K (etc)
-    // todo 00 add and option for how to format; a method etc.
-    // todo    or a formatter.
+    // todo 1 add an option for how to format; a method or a formatter.
     String val = value.toString();
     if (val.endsWith("000000000")) val = val.substring(0, val.length - 9) + "B";
     if (val.endsWith("000000")) val = val.substring(0, val.length - 6) + "M";
@@ -64,22 +65,8 @@ class ChartOptions {
 
     return val + yLabelUnits;
   }
-}
 
-/// File for [LineChartOptions] and [RandomLineChartOptions]
-/// todo 00 document
-///
-class LineChartOptions extends ChartOptions {
-
-  final double hotspotInnerRadius = 3.0;
-  final double hotspotOuterRadius = 6.0;
-
-}
-
-// todo 00 separate to it's file OR merge random_chart_data to chart_data
-class RandomLineChartOptions extends LineChartOptions {
-
-  /// Set up to first threee data rows (series) explicitly, rest randomly
+  /// Sets up colors first threee data rows (series) explicitly, rest randomly
   void setDataRowsRandomColors(int dataRowsCount) {
     if (dataRowsCount >= 1) {
       dataRowsColors.add(material.Colors.red);
@@ -99,5 +86,21 @@ class RandomLineChartOptions extends LineChartOptions {
       }
     }
   }
+
+}
+
+/// File for [LineChartOptions] and [RandomLineChartOptions]
+/// todo 00 document
+///
+class LineChartOptions extends ChartOptions {
+
+  final double hotspotInnerRadius = 3.0;
+  final double hotspotOuterRadius = 6.0;
+
+}
+
+// todo 00 separate to it's file OR merge random_chart_data to chart_data
+class RandomLineChartOptions extends LineChartOptions {
+
 
 }

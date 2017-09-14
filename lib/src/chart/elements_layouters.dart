@@ -34,7 +34,7 @@ class SimpleChartLayouter {
   /// chart's painter (in which this layouter is used).
   List<XLayouterOutput> xOutputs = new List();
   List<YLayouterOutput> yOutputs = new List();
-  LabelScalerFormatter  yScaler;
+  LabelScalerFormatter yScaler;
 
   List<double> vertGridLineXs = new List();
   List<double> horizGridLineYs = new List();
@@ -298,23 +298,18 @@ class YLayouter {
     List flatData = _chartLayouter._data.dataRows.expand((i) => i).toList();
     ChartOptions options = _chartLayouter._options;
 
-    Range range = new Range(values: flatData, maxLabels: 10);
-    // todo 00 refactor this block to one method or add a method for it
-    LabelScalerFormatter labelScaler = range.makeLabelsFromData();
-    labelScaler.toScaleMin =  _yAxisMinOffsetFromTop + _yAxisAvailableHeight;
-    labelScaler.toScaleMax =  _yAxisMinOffsetFromTop ;
-
-    // retain this scaler to also scale coordinates of dots
-    _chartLayouter.yScaler =  labelScaler;
+    Range range = new Range(
+        values: flatData, chartOptions: _chartLayouter._options, maxLabels: 10);
 
     // revert toScaleMin/Max to accomodate y axis starting from top
+    LabelScalerFormatter labelScaler = range.makeLabelsFromDataOnScale(
+      toScaleMin: _yAxisMinOffsetFromTop + _yAxisAvailableHeight,
+      toScaleMax: _yAxisMinOffsetFromTop
+    );
 
-    // todo -1-1 make this one method; or maybe just remobe teh scaleLabelValuesTo and use map on LabelInfo
-    labelScaler.scaleLabelValuesTo(
-        toScaleMin: labelScaler.toScaleMin,
-        toScaleMax: labelScaler.toScaleMax ,
-        chartOptions: options);
-    labelScaler.makeLabelsPresentable(chartOptions: options);
+    // Retain this scaler to be accessible to client code,
+    // e.g. for coordinates of value dots.
+    _chartLayouter.yScaler = labelScaler;
 
     for (LabelInfo labelInfo in labelScaler.labelInfos) {
       print("       ### YLayouter.layoutAutomatically(), labelInfo=$labelInfo");
@@ -341,13 +336,6 @@ class YLayouter {
   }
 }
 
-/* todo 00 try to convert above to common code
-  double _paintersMaxSize((painting.TextPainter p) => double dimFunc(p)) {
-    return  outputs.map((var output) => output.painter)
-            .map(dimFunc)
-            .reduce(math.max);
-  }
-*/
 
 /// A Wrapper of [YLayouter] members that can be used by clients
 /// to layout y labels container.
