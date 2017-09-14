@@ -254,13 +254,18 @@ class YLayouter {
   /// Lays out the the area containing the Y axis.
   ///
   layout() {
+    // to scale is given by (adjusted) available height, known at
+    // costruction time.
+    double toScaleMin = _yAxisMinOffsetFromTop + _yAxisAvailableHeight;
+    double toScaleMax = _yAxisMinOffsetFromTop;
+
     if (_chartLayouter._options.doManualLayoutUsingYLabels) {
       // Evenly divided available height to all labels.
       // Label height includes any spacing on each side.
-      layoutManually();
+      layoutManually(toScaleMin: toScaleMin, toScaleMax: toScaleMax);
     } else {
       // auto layout acc to range scale
-      layoutAutomatically();
+      layoutAutomatically(toScaleMin: toScaleMin, toScaleMax: toScaleMax);
     }
     _yLabelsContainerWidth = outputs
         .map((var output) => output.painter)
@@ -273,38 +278,68 @@ class YLayouter {
         .reduce(math.max);
   }
 
-  void layoutManually() {
+  void layoutManually({double toScaleMin, double toScaleMax}) {
     // Evenly divided available height to all labels.
     // Label height includes any spacing on each side.
-    List<String> yLabels = _chartLayouter._data.yLabels;
-    // todo -1-1 this is actually not right, the _availableHeight is less - need to subtract MAX(yLabel height (half on top, half on bottom), options. xLabelsPadTB * 2)
-    double gridStepHeight = _availableHeight / yLabels.length;
 
+    List flatData = _chartLayouter._data.dataRows.expand((i) => i).toList();
+    //ChartOptions options = _chartLayouter._options;
+//    Range range = new Range(
+//        values: flatData, chartOptions: _chartLayouter._options, maxLabels: 10);
+// todo -1 : simplify and merge with auto layout
+    var dataRange = new Interval(
+        flatData.reduce(math.min), flatData.reduce(math.max));
+
+    List<num> yLabels = _chartLayouter._data.yLabels;
+
+    Interval yAxisRange = new Interval(toScaleMin, toScaleMax);
+
+    double gridStepHeight = (yAxisRange.max - yAxisRange.min) / (yLabels.length - 1);
+
+    List<num> yLabelsDividedInYAxisRange = new List();
     var seq = new Iterable.generate(yLabels.length, (i) => i); // 0 .. length-1
-
     for (var yIndex in seq) {
-      double topY = gridStepHeight * yIndex;
-      var yOutput = new YLayouterOutput();
+      yLabelsDividedInYAxisRange.add(yAxisRange.min + gridStepHeight * yIndex );
+    }
+
+    var labelScaler = new LabelScalerFormatter(
+        dataRange: dataRange,
+        labeValues: yLabelsDividedInYAxisRange,
+        toScaleMin: toScaleMin,
+        toScaleMax: toScaleMax,
+        chartOptions: _chartLayouter._options);
+
+    labelScaler.setLabelValuesForManualLayout( yLabels, yLabelsDividedInYAxisRange);
+    //labelScaler.scaleLabelInfos();
+    labelScaler.makeLabelsPresentable();
+
+    // Retain this scaler to be accessible to client code,
+    // e.g. for coordinates of value dots.
+    _chartLayouter.yScaler = labelScaler;
+
+    for (LabelInfo labelInfo in labelScaler.labelInfos) {
+      double topY = labelInfo.scaledLabelValue;
+      var output = new YLayouterOutput();
       // textPainterForLabel calls [TextPainter.layout]
-      yOutput.painter = new LabelPainter(options: _chartLayouter._options)
-          .textPainterForLabel(yLabels[yIndex]);
-      yOutput.horizGridLineY = topY + yOutput.painter.height / 2;
-      yOutput.labelY = topY;
-      outputs.add(yOutput);
+      output.painter = new LabelPainter(options: _chartLayouter._options)
+          .textPainterForLabel(labelInfo.formattedYLabel);
+      output.horizGridLineY = topY;
+      output.labelY = topY - output.painter.height / 2;
+      outputs.add(output);
     }
   }
 
-  void layoutAutomatically() {
+  void layoutAutomatically({double toScaleMin, double toScaleMax}) {
     List flatData = _chartLayouter._data.dataRows.expand((i) => i).toList();
-    ChartOptions options = _chartLayouter._options;
+    // ChartOptions options = _chartLayouter._options;
 
     Range range = new Range(
         values: flatData, chartOptions: _chartLayouter._options, maxLabels: 10);
 
     // revert toScaleMin/Max to accomodate y axis starting from top
     LabelScalerFormatter labelScaler = range.makeLabelsFromDataOnScale(
-      toScaleMin: _yAxisMinOffsetFromTop + _yAxisAvailableHeight,
-      toScaleMax: _yAxisMinOffsetFromTop
+        toScaleMin: toScaleMin,
+        toScaleMax: toScaleMax
     );
 
     // Retain this scaler to be accessible to client code,
@@ -312,14 +347,13 @@ class YLayouter {
     _chartLayouter.yScaler = labelScaler;
 
     for (LabelInfo labelInfo in labelScaler.labelInfos) {
-      print("       ### YLayouter.layoutAutomatically(), labelInfo=$labelInfo");
       double topY = labelInfo.scaledLabelValue;
       var output = new YLayouterOutput();
       // textPainterForLabel calls [TextPainter.layout]
       output.painter = new LabelPainter(options: _chartLayouter._options)
-          .textPainterForLabel(labelInfo.formattedLabel);
-      output.horizGridLineY = topY + output.painter.height / 2;
-      output.labelY = topY;
+          .textPainterForLabel(labelInfo.formattedYLabel);
+      output.horizGridLineY = topY;
+      output.labelY = topY - output.painter.height / 2;
       outputs.add(output);
     }
   }

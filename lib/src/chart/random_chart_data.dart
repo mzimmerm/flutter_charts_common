@@ -62,7 +62,7 @@ class RandomChartData extends ChartData {
 
   void _generateYLabels() {
     if (_chartOptions.doManualLayoutUsingYLabels) {
-      yLabels = [ "25%", "50%", "75%", "100%"];
+      yLabels = [ 0, 25, 50, 75, 100];
     }
   }
 

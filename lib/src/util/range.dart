@@ -40,6 +40,9 @@ class Range {
 
   /// Automatically generates unscaled labels (more precisely their values)
   /// from data.
+  ///
+  /// The [toScaleMin] and [toScaleMax] are the display scale,
+  /// for example the range of Y axis positions between bottom and top.
   LabelScalerFormatter makeLabelsFromDataOnScale(
       {double toScaleMin, double toScaleMax}) {
     num min = _closure.min;
@@ -87,7 +90,8 @@ class Range {
     }
 
     // Now make labels, evenly distributed in the from, to range,
-    // only showing significant steps.
+    // only showing significant steps. labels are unscaled, that is,
+    // on scale of data.
 
     List<num> labels = _distributeLabelsIn(new Interval(from, to));
 
@@ -100,8 +104,8 @@ class Range {
         toScaleMax: toScaleMax,
         chartOptions: _options);
 
-    labelScaler._scaleLabelInfos();
-    labelScaler._makeLabelsPresentable();
+    labelScaler.scaleLabelInfos();
+    labelScaler.makeLabelsPresentable();
 
     return labelScaler;
   }
@@ -207,7 +211,10 @@ class LabelScalerFormatter {
     _options = chartOptions;
   }
 
-  // todo -1-1 document as the scaler of all Y values
+  /// Scales [value]
+  ///   - from the own scale, given be the merged data and label intervals
+  ///     in [labelAndDataRangeMerged]
+  ///   - to the Y axis scale defined by [_toScaleMin], [_toScaleMax].
   double scaleY({double value}) {
     return scaleValue(value: value.toDouble(),
         ownScaleMin: labelAndDataRangeMerged.min.toDouble(),
@@ -216,9 +223,10 @@ class LabelScalerFormatter {
         toScaleMax: _toScaleMax);
   }
 
-  // todo -1-1 remove the toScaleMin/Max - now args. But tests need fixing
-  /// Self-scale the RangeOutput to the scale of the available chart size.
-  void _scaleLabelInfos() {
+  /// Self-scales the Y label values in [labelInfos] to the scale
+  /// of the available chart size.
+  /// todo -1 maybe make private and wrap - need for manual layout - better, create method for manual layout and move code from layouters here
+  void scaleLabelInfos() {
     labelInfos.forEach((var labelInfo) =>
         labelInfo._scaleLabelValue()
     );
@@ -229,21 +237,48 @@ class LabelScalerFormatter {
     }
   }
 
-  void _makeLabelsPresentable() {
+  // todo -1 simplify
+  void setLabelValuesForManualLayout(List labelValues, List scaledLabelValues)  {
+    for (int i = 0; i < labelValues.length; i++) {
+      labelInfos[i].labelValue = labelValues[i];
+      labelInfos[i].scaledLabelValue = scaledLabelValues[i];
+    }
+
+
+    if (_toScaleMin > _toScaleMax) {
+      // we are inverting scales, so invert labels.
+      labelInfos = labelInfos.reversed.toList();
+    }
+  }
+
+  /// Format labels in a way suitable for presentation on the Y axis.
+  ///
+  /// [ChartOptions] allow for customization.
+  /// todo -1 maybe make private and wrap - need for manual layout - better, create method for manual layout and move code from layouters here
+  void makeLabelsPresentable() {
     labelInfos.forEach((labelInfo) {
-      labelInfo.formattedLabel =
+      labelInfo.formattedYLabel =
           _options.valueToLabel(labelInfo.labelValue);
     });
   }
 
   // ### Helper accessors to collection of LabelInfos
+
+  /// Extracts unscaled values of labels from [labelInfos].
   List<num> get labelValues =>
       labelInfos.map((labelInfo) => labelInfo.labelValue)
-          .toList(); // todo -1-1 used in tests but nowhere else?
+          .toList();
 
+  /// Constructs an interval of [labelValues] from their min / max.
   Interval get labelRange =>
       new Interval(labelValues.reduce(math.min), labelValues.reduce(math.max));
 
+  /// Constructs interval which is a merge (outer bound) of
+  /// [labelRange] and [dataRange].
+  ///
+  /// Typically, [labelRange] and [dataRange] overlap but are not subset
+  /// of one another - but that will in the future change in some
+  /// cases, as defined by [ChartOptions].
   Interval get labelAndDataRangeMerged => labelRange.merge(dataRange);
 
 }
@@ -274,10 +309,10 @@ class LabelInfo {
   /// Unscaled label value, ([labelValues] are on the scale of data).
   num labelValue;
 
-  /// Label actually showing on axis (Y axis); typically a value with unit.
+  /// Label showing on the Y axis; typically a value with unit.
   ///
   /// Formatted label is just formatted [scaledLabelValue].
-  String formattedLabel;
+  String formattedYLabel;
 
   /// Scaled label value.
   ///
@@ -294,7 +329,7 @@ class LabelInfo {
     return super.toString() +
         " scaledLabelValue=${this.scaledLabelValue}," +
         " labelValue=${this.labelValue}," +
-        " formattedLabel=${this.formattedLabel}";
+        " formattedYLabel=${this.formattedYLabel}";
   }
 }
 

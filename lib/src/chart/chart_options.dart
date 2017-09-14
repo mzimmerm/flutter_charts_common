@@ -18,8 +18,9 @@ class ChartOptions {
   ///   - Current implementation splits Y axis into even number of sections, each yLabel level gets one line.
   /// If `false`, a "auto" layout of Y axis is used.
   ///   - Current implementation smartly creates Y labels from data so that little Y space is wasted.
-  ///   -  `false` is default
-  bool doManualLayoutUsingYLabels = false;
+  ///   - `false` is default
+  ///   - `true` is NOT FULLY SUPPORTED yet
+  bool doManualLayoutUsingYLabels = true;
 
   /// Shows largest value on very top of the chart grid, to save space.
   bool largestValuePointOnVeryTop = true; // false not supported

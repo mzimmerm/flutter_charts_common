@@ -11,11 +11,16 @@ class ChartData {
   /// in each row in [dataRows].
   List<String> xLabels = new List();
 
-  /// Labels on dependent (Y) axis.
+  /// Labels on dependent (Y) axis. They must be numbers.
+  ///
+  /// If you need number labels with units (e.g. %), define % in options
+  /// If you need purely String labels, this is a todo 1.
+  ///
+  /// This is used only if [ChartOptions.doManualLayoutUsingYLabels] is true.
   ///
   /// They may be undefined, in which case the
   /// Y axis is likely not shown.
-  List<String> yLabels = new List();
+  List<num> yLabels = new List();
 
   void validate() {
     for (List<double> dataRow in dataRows) {
