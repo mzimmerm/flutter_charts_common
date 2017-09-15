@@ -23,6 +23,8 @@ class SimpleChartLayouter {
   yLayouter; // todo 00 make private - all manipulation through YLayouterOutput
   XLayouter xLayouter;
 
+  double legendHY = 50.0;
+
   /// This layouter stores positions in the [GuidingPoints] instance,
   /// and uses its members as "guiding points" where it's child layouts should
   /// draw themselves.
@@ -39,22 +41,24 @@ class SimpleChartLayouter {
   List<double> vertGridLineXs = new List();
   List<double> horizGridLineYs = new List();
 
+  /* todo -1 remove
   List<double> labelXs = new List();
   List<double> labelYs = new List();
+*/
 
   /// XLayouter's grid cannot start on the left (x=0) of the available chart area,
   /// it has to start at least a width of Y label left from the left.
   ///
   /// This member represents the forced minimum offset from the left
   /// of the chart area, to the left of the grid.
-  double _xLayouterMinOffsetLeft;
+  double _xLayouterMinOffsetFromLeft;
 
   /// XLayouter's grid cannot start on the top (y=0) of the available chart area,
   /// it has to start at least half height of Y label down from the top.
   ///
   /// This member represents the forced minimum offset from top of the chart area,
-  /// to the top of the grid.
-  double _xLayouterMinOffsetTop;
+  /// to the top of the grid, within this parent layouter.
+  double _xLayouterMinOffsetFromTop;
 
   /// Simple Layouter for a simple flutter chart.
   ///
@@ -80,16 +84,16 @@ class SimpleChartLayouter {
     var yLayouterFirst = new YLayouter(
         chartLayouter: this,
         availableHeight: chartArea.height,
-        yAxisMinOffsetFromTop: 0.0,
-        yAxisMinOffsetFromBottom: 0.0
+        yAxisOffsetMinFromParentTop: 0.0,
+        yAxisOffsetMinFromParentTopBottom: 0.0
 
     );
 
     print("   ### YLayouter #1: before layout: ${yLayouterFirst}");
     yLayouterFirst.layout();
     print("   ### YLayouter #1: after layout: ${yLayouterFirst}");
-    _xLayouterMinOffsetLeft = yLayouterFirst._yLabelsContainerWidth;
-    _xLayouterMinOffsetTop = yLayouterFirst._yLabelsMaxHeight / 2;
+    _xLayouterMinOffsetFromLeft = yLayouterFirst._yLabelsContainerWidth;
+    _xLayouterMinOffsetFromTop = yLayouterFirst._yLabelsMaxHeight / 2 + legendHY;
     this.yLayouter = yLayouterFirst;
 
     // ### 2. Knowing width required by YLayouter, we can layout X labels and grid.
@@ -98,7 +102,7 @@ class SimpleChartLayouter {
     var xLayouter = new XLayouter(
         chartLayouter: this,
         // todo 1 add padding, from options
-        availableWidth: chartArea.width - xLayouterOffsetLeft);
+        availableWidth: chartArea.width - xLayouterOffsetFromLeft);
 
     print("   ### XLayouter");
     xLayouter.layout();
@@ -107,8 +111,8 @@ class SimpleChartLayouter {
     xOutputs = xLayouter.outputs.map((var output) {
       var xOutput = new XLayouterOutput();
       xOutput.painter = output.painter;
-      xOutput.vertGridLineX = xLayouterOffsetLeft + output.vertGridLineX;
-      xOutput.labelX = xLayouterOffsetLeft + output.labelX;
+      xOutput.vertGridLineX = xLayouterOffsetFromLeft + output.vertGridLineX;
+      xOutput.labelX = xLayouterOffsetFromLeft + output.labelX;
       return xOutput;
     }).toList();
 
@@ -117,14 +121,15 @@ class SimpleChartLayouter {
     //        on the bottom (which is not available for Y height)
     // First call to YLayouter provides how much width is left for XLayouter (grid and X axis)
 
-    var yAxisMinOffsetFromTop = xLayouterOffsetTop; //  + _options.xTopMinTicksHeight;
-    var yAxisMinOffsetFromBottom = 2 * _options.xLabelsPadTB +
+    // todo -1 remove vars yAxisOffsetMinFromParentTop yAxisOffsetMinFromParentTopBottom
+    var yAxisOffsetMinFromParentTop = xLayouterOffsetFromTop;
+    var yAxisOffsetMinFromParentTopBottom = 2 * _options.xLabelsPadTB +
         _options.xBottomMinTicksHeight;
     var yLayouter = new YLayouter(
         chartLayouter: this,
-        availableHeight: chartArea.height - xLayouter._xLabelsContainerHeight,
-        yAxisMinOffsetFromTop: yAxisMinOffsetFromTop,
-        yAxisMinOffsetFromBottom: yAxisMinOffsetFromBottom
+        availableHeight: chartArea.height - xLayouter._xLabelsContainerHeight - legendHY,
+        yAxisOffsetMinFromParentTop: yAxisOffsetMinFromParentTop - legendHY, // todo -1 this should be additional offset from top of parent layouter
+        yAxisOffsetMinFromParentTopBottom: yAxisOffsetMinFromParentTopBottom
     );
 
     print("   ### YLayouter #2: before layout: ${yLayouter}");
@@ -149,26 +154,29 @@ class SimpleChartLayouter {
     horizGridLineYs =
         yOutputs.map((var output) => output.horizGridLineY).toList();
 
+    /* todo -1 remove
     // todo 00 how is this used?
     labelXs = xOutputs.map((var output) => output.labelX).toList();
 
     labelYs = yOutputs.map((var output) => output.labelY).toList();
+    */
   }
 
-  double get xLayouterOffsetTop =>
-      math.max(_xLayouterMinOffsetTop, _options.xTopMinTicksHeight);
+  // todo -1 surely more vars can be removed
+  double get xLayouterOffsetFromTop =>
+      math.max(_xLayouterMinOffsetFromTop, _options.xTopMinTicksHeight);
 
-  double get xLayouterOffsetLeft => _xLayouterMinOffsetLeft;
+  double get xLayouterOffsetFromLeft => _xLayouterMinOffsetFromLeft;
 
   double get yRightTicksWidth =>
       math.max(_options.yRightMinTicksWidth, xLayouter._gridStepWidth / 2);
 
-  double get gridVerticalLinesFromY => xLayouterOffsetTop;
+  double get vertGridLinesFromY => xLayouterOffsetFromTop;
 
-  double get gridVerticalLinesToY =>
+  double get vertGridLinesToY =>
       horizGridLineYs.reduce(math.max) + _options.xBottomMinTicksHeight;
 
-  double get gridHorizontalLinesFromX => xLayouterOffsetLeft;
+  double get gridHorizontalLinesFromX => xLayouterOffsetFromLeft;
 
   double get gridHorizontalLinesToX =>
       vertGridLineXs.reduce(math.max) + yRightTicksWidth;
@@ -202,8 +210,8 @@ class YLayouter {
 
   double _yLabelsContainerWidth;
   double _yLabelsMaxHeight;
-  double _yAxisMinOffsetFromTop;
-  double _yAxisMinOffsetFromBottom;
+  double _yAxisOffsetMinFromParentTop;
+  double _yAxisOffsetMinFromParentTopBottom;
   double _yAxisAvailableHeight;
 
   /// Constructor gives this layouter access to it's
@@ -216,26 +224,26 @@ class YLayouter {
   YLayouter({
     SimpleChartLayouter chartLayouter,
     double availableHeight,
-    double yAxisMinOffsetFromTop,
-    double yAxisMinOffsetFromBottom
+    double yAxisOffsetMinFromParentTop,
+    double yAxisOffsetMinFromParentTopBottom
 
   }) {
     _chartLayouter = chartLayouter;
     _availableHeight = availableHeight;
 
-    _yAxisMinOffsetFromTop = yAxisMinOffsetFromTop;
-    _yAxisMinOffsetFromBottom = yAxisMinOffsetFromBottom;
+    _yAxisOffsetMinFromParentTop = yAxisOffsetMinFromParentTop;
+    _yAxisOffsetMinFromParentTopBottom = yAxisOffsetMinFromParentTopBottom;
     _yAxisAvailableHeight =
-        _availableHeight - _yAxisMinOffsetFromTop - _yAxisMinOffsetFromBottom;
+        _availableHeight - _yAxisOffsetMinFromParentTop - _yAxisOffsetMinFromParentTopBottom;
   }
 
   /// Lays out the the area containing the Y axis.
   ///
   layout() {
-    // to scale is given by (adjusted) available height, known at
-    // costruction time.
-    double toScaleMin = _yAxisMinOffsetFromTop + _yAxisAvailableHeight;
-    double toScaleMax = _yAxisMinOffsetFromTop;
+    // the scale is given by (adjusted) available height, known at
+    // construction time.
+    double toScaleMin = _yAxisOffsetMinFromParentTop + _yAxisAvailableHeight + _chartLayouter.legendHY; // here we are subtracting legendY in both vars. so remove one
+    double toScaleMax = _yAxisOffsetMinFromParentTop + _chartLayouter.legendHY;
 
     if (_chartLayouter._options.doManualLayoutUsingYLabels) {
       layoutManually(toScaleMin: toScaleMin, toScaleMax: toScaleMax);
@@ -326,8 +334,8 @@ class YLayouter {
       ", _availableHeight = ${_availableHeight}" +
           ", _yLabelsContainerWidth = ${_yLabelsContainerWidth}" +
           ", _yLabelsMaxHeight = ${_yLabelsMaxHeight}" +
-          ", _yAxisMinOffsetFromTop = ${_yAxisMinOffsetFromTop}" +
-          ", _yAxisMinOffsetFromBottom = ${_yAxisMinOffsetFromBottom}" +
+          ", _yAxisOffsetMinFromParentTop = ${_yAxisOffsetMinFromParentTop}" +
+          ", _yAxisOffsetMinFromParentTopBottom = ${_yAxisOffsetMinFromParentTopBottom}" +
           ", _yAxisAvailableHeight = ${_yAxisAvailableHeight}"
     ;
   }
