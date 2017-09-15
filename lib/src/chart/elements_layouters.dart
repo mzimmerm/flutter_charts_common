@@ -74,13 +74,13 @@ class SimpleChartLayouter {
     // ### 1. First call to YLayouter provides how much width is left for XLayouter (grid and X axis)
     // the scale is given by (adjusted) available height, known at
     // construction time.
-    double yAxisInParentMin =  chartArea.height  - legendHY;
-    double yAxisInParentMax =  0.0;
+    double yAxisInAreaMin =  chartArea.height  - legendHY;
+    double yAxisInAreaMax =  0.0;
 
     var yLayouterFirst = new YLayouter(
       chartLayouter: this,
-      yAxisInParentMin: yAxisInParentMin,
-      yAxisInParentMax: yAxisInParentMax,
+      yAxisInAreaMin: yAxisInAreaMin,
+      yAxisInAreaMax: yAxisInAreaMax,
     );
 
     print("   ### YLayouter #1: before layout: ${yLayouterFirst}");
@@ -98,7 +98,7 @@ class SimpleChartLayouter {
     var xLayouter = new XLayouter(
         chartLayouter: this,
         // todo 1 add padding, from options
-        availableWidth: chartArea.width - xLayouterFromAreaLeft);
+        availableWidth: chartArea.width - xLayouterAbsX);
 
     print("   ### XLayouter");
     xLayouter.layout();
@@ -107,8 +107,8 @@ class SimpleChartLayouter {
     xOutputs = xLayouter.outputs.map((var output) {
       var xOutput = new XLayouterOutput();
       xOutput.painter = output.painter;
-      xOutput.vertGridLineX = xLayouterFromAreaLeft + output.vertGridLineX;
-      xOutput.labelX = xLayouterFromAreaLeft + output.labelX;
+      xOutput.vertGridLineX = xLayouterAbsX + output.vertGridLineX;
+      xOutput.labelX = xLayouterAbsX + output.labelX;
       return xOutput;
     }).toList();
 
@@ -119,13 +119,13 @@ class SimpleChartLayouter {
 
     // the scale is given by (adjusted) available height, known at
     // construction time.
-    yAxisInParentMin = chartArea.height - (_options.xBottomMinTicksHeight + xLayouter._xLabelsContainerHeight + 2 * _options.xLabelsPadTB ); // here we are subtracting legendY in both vars. so remove one
-    yAxisInParentMax = xyLayoutersOffsetFromParentTop;
+    yAxisInAreaMin = chartArea.height - (_options.xBottomMinTicksHeight + xLayouter._xLabelsContainerHeight + 2 * _options.xLabelsPadTB ); // here we are subtracting legendY in both vars. so remove one
+    yAxisInAreaMax = xyLayoutersAbsY;
 
     var yLayouter = new YLayouter(
         chartLayouter: this,
-        yAxisInParentMin: yAxisInParentMin,
-        yAxisInParentMax: yAxisInParentMax,
+        yAxisInAreaMin: yAxisInAreaMin,
+        yAxisInAreaMax: yAxisInAreaMax,
     );
 
     print("   ### YLayouter #2: before layout: ${yLayouter}");
@@ -134,7 +134,7 @@ class SimpleChartLayouter {
 
     this.yLayouter = yLayouter;
 
-    // ### 4. Recalculate offsets for this parent layouter
+    // ### 4. Recalculate offsets for this Area layouter
 
     yOutputs = yLayouter.outputs.map((var output) {
       var yOutput = new YLayouterOutput();
@@ -153,27 +153,27 @@ class SimpleChartLayouter {
   }
 
   // todo -1 surely more vars can be removed
-  double get xyLayoutersOffsetFromParentTop =>
+  double get xyLayoutersAbsY =>
       math.max(_yLabelsMaxHeight / 2 + legendHY, _options.xTopMinTicksHeight);
 
-  double get xLayouterFromAreaLeft => _yLabelsContainerWidth;
+  double get xLayouterAbsX => _yLabelsContainerWidth;
 
   double get yRightTicksWidth =>
       math.max(_options.yRightMinTicksWidth, xLayouter._gridStepWidth / 2);
 
-  double get vertGridLinesFromY => xyLayoutersOffsetFromParentTop;
+  double get vertGridLinesFromY => xyLayoutersAbsY;
 
   double get vertGridLinesToY =>
       horizGridLineYs.reduce(math.max) + _options.xBottomMinTicksHeight;
 
-  double get gridHorizontalLinesFromX => xLayouterFromAreaLeft;
+  double get horizGridLinesFromX => xLayouterAbsX;
 
-  double get gridHorizontalLinesToX =>
+  double get horizGridLinesToX =>
       vertGridLineXs.reduce(math.max) + yRightTicksWidth;
 
-  double get yLabelsOffsetFromLeft => _options.yLabelsPadLR;
+  double get yLabelsAbsX => _options.yLabelsPadLR;
 
-  double get xLabelsContainerAbsY => _chartArea.height - (xLayouter._xLabelsContainerHeight + _options.xLabelsPadTB);
+  double get xLabelsAbsY => _chartArea.height - (xLayouter._xLabelsContainerHeight + _options.xLabelsPadTB);
 
   double get yLabelsMaxHeight => yLayouter._yLabelsMaxHeight;
 
@@ -181,7 +181,7 @@ class SimpleChartLayouter {
 
 /// Auto-layouter of the area containing Y axis.
 ///
-/// Out of all calls to layouter's [layout] by parent layouter,
+/// Out of all calls to layouter's [layout] by Area layouter,
 /// the call to this object's [layout] is first, thus
 /// providing remaining available space for grid and x labels.
 class YLayouter {
@@ -189,8 +189,6 @@ class YLayouter {
   SimpleChartLayouter _chartLayouter;
 
   // ### input values
-
-  double _availableHeight;
 
   // ### calculated values
 
@@ -201,11 +199,11 @@ class YLayouter {
   double _yLabelsMaxHeight;
 
 
-  double yAxisInParentMin;
-      double yAxisInParentMax;
+  double _yAxisInAreaMin;
+  double _yAxisInAreaMax;
 
   /// Constructor gives this layouter access to it's
-  /// layouting parent [chartLayouter], giving it [availableHeight],
+  /// layouting Area [chartLayouter], giving it [availableHeight],
   /// which is (likely) the full chart area height available to the chart.
   ///
   /// This layouter uses the full [availableHeight], and takes as
@@ -213,15 +211,13 @@ class YLayouter {
   ///
   YLayouter({
     SimpleChartLayouter chartLayouter,
-    double yAxisInParentMin,
-    double yAxisInParentMax,
+    double yAxisInAreaMin,
+    double yAxisInAreaMax,
 
   }) {
     _chartLayouter = chartLayouter;
-    _availableHeight = yAxisInParentMin - yAxisInParentMax;
-     this.yAxisInParentMin = yAxisInParentMin;
-     this.yAxisInParentMax = yAxisInParentMax;
-
+     _yAxisInAreaMin = yAxisInAreaMin;
+     _yAxisInAreaMax = yAxisInAreaMax;
   }
 
   /// Lays out the the area containing the Y axis.
@@ -230,9 +226,9 @@ class YLayouter {
 
 
     if (_chartLayouter._options.doManualLayoutUsingYLabels) {
-      layoutManually(yAxisInParentMin: yAxisInParentMin, yAxisInParentMax: yAxisInParentMax);
+      layoutManually();
     } else {
-      layoutAutomatically(yAxisInParentMin: yAxisInParentMin, yAxisInParentMax: yAxisInParentMax);
+      layoutAutomatically();
     }
     _yLabelsContainerWidth = outputs
         .map((var output) => output.painter)
@@ -246,7 +242,7 @@ class YLayouter {
   }
 
   /// Manually layout Y axis by evenly dividing available height to all Y labels.
-  void layoutManually({double yAxisInParentMin, double yAxisInParentMax}) {
+  void layoutManually() {
 
     List flatData = _chartLayouter._data.dataRows.expand((i) => i).toList();
     var dataRange = new Interval(
@@ -254,7 +250,7 @@ class YLayouter {
 
     List<num> yLabels = _chartLayouter._data.yLabels;
 
-    Interval yAxisRange = new Interval(yAxisInParentMin, yAxisInParentMax);
+    Interval yAxisRange = new Interval(_yAxisInAreaMin, _yAxisInAreaMax);
 
     double gridStepHeight = (yAxisRange.max - yAxisRange.min) / (yLabels.length - 1);
 
@@ -267,8 +263,8 @@ class YLayouter {
     var labelScaler = new LabelScalerFormatter(
         dataRange: dataRange,
         labeValues: yLabelsDividedInYAxisRange,
-        toScaleMin: yAxisInParentMin,
-        toScaleMax: yAxisInParentMax,
+        toScaleMin: _yAxisInAreaMin,
+        toScaleMax: _yAxisInAreaMax,
         chartOptions: _chartLayouter._options);
 
     labelScaler.setLabelValuesForManualLayout( labelValues: yLabels, scaledLabelValues: yLabelsDividedInYAxisRange);
@@ -280,7 +276,7 @@ class YLayouter {
 
   /// Generate labels from data, and auto layout
   /// Y axis according to data range, labels range, and display range
-  void layoutAutomatically({double yAxisInParentMin, double yAxisInParentMax}) {
+  void layoutAutomatically() {
 
     List flatData = _chartLayouter._data.dataRows.expand((i) => i).toList();
 
@@ -289,8 +285,8 @@ class YLayouter {
 
     // revert toScaleMin/Max to accomodate y axis starting from top
     LabelScalerFormatter labelScaler = range.makeLabelsFromDataOnScale(
-        toScaleMin: yAxisInParentMin,
-        toScaleMax: yAxisInParentMax
+        toScaleMin: _yAxisInAreaMin,
+        toScaleMax: _yAxisInAreaMax
     );
 
     _commonLayout(labelScaler);
@@ -315,7 +311,6 @@ class YLayouter {
 
   String toString() {
     return
-      ", _availableHeight = ${_availableHeight}" +
           ", _yLabelsContainerWidth = ${_yLabelsContainerWidth}" +
           ", _yLabelsMaxHeight = ${_yLabelsMaxHeight}"
     ;
@@ -329,7 +324,7 @@ class YLayouter {
 /// Generally, the owner of this object decides what the offsets are:
 ///   - If owner is YLayouter, all positions are relative to the top of
 ///     the container of y labels
-///   - If owner is parent [SimpleChartLayouter], all positions are relative
+///   - If owner is Area [SimpleChartLayouter], all positions are relative
 ///     to the top of the available [chartArea].
 class YLayouterOutput {
   /// Painter configured to paint one label
@@ -363,7 +358,7 @@ class YLayouterOutput {
 ///     until we call `TextPainter(text: textSpan).layout()`.
 ///     provided by LabelPainter.textPainterForLabel(String string)
 ///   - todo add iterations that allow layout size to be negotiated.
-///     The above requires a parent layouter or similar object, that can ask
+///     The above requires a Area layouter or similar object, that can ask
 ///     this object to recalculate
 ///     - skip labels to fit
 ///     - rotate labels to fit
@@ -393,7 +388,7 @@ class XLayouter {
   double _gridStepWidth;
 
   /// Constructor gives this layouter access to it's
-  /// layouting parent [chartLayouter], giving it [availableWidth],
+  /// layouting Area [chartLayouter], giving it [availableWidth],
   /// which is (likely) the remainder of width after [YLayouter]
   /// has taken whichever width it needs.
   ///

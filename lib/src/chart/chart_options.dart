@@ -20,7 +20,7 @@ class ChartOptions {
   ///   - Current implementation smartly creates Y labels from data so that little Y space is wasted.
   ///   - `false` is default
   ///   - `true` is supported as well
-  bool doManualLayoutUsingYLabels = false;
+  bool doManualLayoutUsingYLabels = true;
 
   /// Shows largest value on very top of the chart grid, to save space.
   bool largestValuePointOnVeryTop = true; // false not supported
