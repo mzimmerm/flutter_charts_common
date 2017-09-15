@@ -248,7 +248,7 @@ class YLayouter {
     var dataRange = new Interval(
         flatData.reduce(math.min), flatData.reduce(math.max));
 
-    List<num> yLabels = _chartLayouter._data.yLabels;
+    List<String> yLabels = _chartLayouter._data.yLabels;
 
     Interval yAxisRange = new Interval(_yAxisInAreaMin, _yAxisInAreaMax);
 
@@ -267,9 +267,9 @@ class YLayouter {
         toScaleMax: _yAxisInAreaMax,
         chartOptions: _chartLayouter._options);
 
-    labelScaler.setLabelValuesForManualLayout( labelValues: yLabels, scaledLabelValues: yLabelsDividedInYAxisRange);
+    labelScaler.setLabelValuesForManualLayout( labelValues: yLabelsDividedInYAxisRange, scaledLabelValues: yLabelsDividedInYAxisRange, formattedYLabels:yLabels);
     //labelScaler.scaleLabelInfos();
-    labelScaler.makeLabelsPresentable();
+    //labelScaler.makeLabelsPresentable(); // todo -1 make private
 
     _commonLayout(labelScaler);
   }

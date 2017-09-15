@@ -20,7 +20,7 @@ class ChartData {
   ///
   /// They may be undefined, in which case the
   /// Y axis is likely not shown.
-  List<num> yLabels = new List();
+  List<String> yLabels = new List();
 
   void validate() {
     for (List<double> dataRow in dataRows) {

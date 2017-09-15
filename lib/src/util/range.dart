@@ -236,10 +236,11 @@ class LabelScalerFormatter {
   }
 
   /// Manual layout helper, forces values and scaled values.
-  void setLabelValuesForManualLayout({List labelValues, List scaledLabelValues})  {
+  void setLabelValuesForManualLayout({List labelValues, List scaledLabelValues, List formattedYLabels})  {
     for (int i = 0; i < labelValues.length; i++) {
       labelInfos[i].labelValue = labelValues[i];
       labelInfos[i].scaledLabelValue = scaledLabelValues[i];
+      labelInfos[i].formattedYLabel = formattedYLabels[i];
     }
 
     if (_toScaleMin > _toScaleMax) {
