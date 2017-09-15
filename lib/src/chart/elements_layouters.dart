@@ -51,14 +51,14 @@ class SimpleChartLayouter {
   ///
   /// This member represents the forced minimum offset from the left
   /// of the chart area, to the left of the grid.
-  double _xLayouterMinOffsetFromLeft;
+  double _yToXLayouterMinLeftGap;
 
   /// XLayouter's grid cannot start on the top (y=0) of the available chart area,
   /// it has to start at least half height of Y label down from the top.
   ///
   /// This member represents the forced minimum offset from top of the chart area,
   /// to the top of the grid, within this parent layouter.
-  double _xLayouterMinOffsetFromTop;
+  double _yToXLayouterMinTopGap;
 
   /// Simple Layouter for a simple flutter chart.
   ///
@@ -92,8 +92,8 @@ class SimpleChartLayouter {
     print("   ### YLayouter #1: before layout: ${yLayouterFirst}");
     yLayouterFirst.layout();
     print("   ### YLayouter #1: after layout: ${yLayouterFirst}");
-    _xLayouterMinOffsetFromLeft = yLayouterFirst._yLabelsContainerWidth;
-    _xLayouterMinOffsetFromTop = yLayouterFirst._yLabelsMaxHeight / 2 + legendHY;
+    _yToXLayouterMinLeftGap = yLayouterFirst._yLabelsContainerWidth;
+    _yToXLayouterMinTopGap = yLayouterFirst._yLabelsMaxHeight / 2 + legendHY;
     this.yLayouter = yLayouterFirst;
 
     // ### 2. Knowing width required by YLayouter, we can layout X labels and grid.
@@ -122,7 +122,7 @@ class SimpleChartLayouter {
     // First call to YLayouter provides how much width is left for XLayouter (grid and X axis)
 
     // todo -1 remove vars yAxisOffsetMinFromParentTop yAxisOffsetMinFromParentTopBottom
-    var yAxisOffsetMinFromParentTop = xLayouterOffsetFromTop;
+    var yAxisOffsetMinFromParentTop = xLayouterOffsetFromParentTop;
     var yAxisOffsetMinFromParentTopBottom = 2 * _options.xLabelsPadTB +
         _options.xBottomMinTicksHeight;
     var yLayouter = new YLayouter(
@@ -163,15 +163,15 @@ class SimpleChartLayouter {
   }
 
   // todo -1 surely more vars can be removed
-  double get xLayouterOffsetFromTop =>
-      math.max(_xLayouterMinOffsetFromTop, _options.xTopMinTicksHeight);
+  double get xLayouterOffsetFromParentTop =>
+      math.max(_yToXLayouterMinTopGap, _options.xTopMinTicksHeight);
 
-  double get xLayouterOffsetFromLeft => _xLayouterMinOffsetFromLeft;
+  double get xLayouterOffsetFromLeft => _yToXLayouterMinLeftGap;
 
   double get yRightTicksWidth =>
       math.max(_options.yRightMinTicksWidth, xLayouter._gridStepWidth / 2);
 
-  double get vertGridLinesFromY => xLayouterOffsetFromTop;
+  double get vertGridLinesFromY => xLayouterOffsetFromParentTop;
 
   double get vertGridLinesToY =>
       horizGridLineYs.reduce(math.max) + _options.xBottomMinTicksHeight;
