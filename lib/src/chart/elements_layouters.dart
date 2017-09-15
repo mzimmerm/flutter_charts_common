@@ -84,8 +84,8 @@ class SimpleChartLayouter {
     var yLayouterFirst = new YLayouter(
         chartLayouter: this,
         availableHeight: chartArea.height,
-        yAxisOffsetMinFromParentTop: 0.0,
-        yAxisOffsetMinFromParentBottom: 0.0
+        yAxisOffsetMinFromTop: 0.0,
+        yAxisOffsetMinFromBottom: 0.0
 
     );
 
@@ -121,15 +121,11 @@ class SimpleChartLayouter {
     //        on the bottom (which is not available for Y height)
     // First call to YLayouter provides how much width is left for XLayouter (grid and X axis)
 
-    // todo -1 remove vars yAxisOffsetMinFromParentTop yAxisOffsetMinFromParentBottom
-    var yAxisOffsetMinFromParentTop = xLayouterOffsetFromParentTop;
-    var yAxisOffsetMinFromParentBottom = 2 * _options.xLabelsPadTB +
-        _options.xBottomMinTicksHeight;
     var yLayouter = new YLayouter(
         chartLayouter: this,
         availableHeight: chartArea.height - xLayouter._xLabelsContainerHeight - legendHY,
-        yAxisOffsetMinFromParentTop: yAxisOffsetMinFromParentTop - legendHY, // todo -1 this should be additional offset from top of parent layouter
-        yAxisOffsetMinFromParentBottom: yAxisOffsetMinFromParentBottom
+        yAxisOffsetMinFromTop: xyLayoutersOffsetFromParentTop - legendHY, // todo -1 this should be additional offset from top of parent layouter
+        yAxisOffsetMinFromBottom: 2 * _options.xLabelsPadTB + _options.xBottomMinTicksHeight
     );
 
     print("   ### YLayouter #2: before layout: ${yLayouter}");
@@ -163,7 +159,7 @@ class SimpleChartLayouter {
   }
 
   // todo -1 surely more vars can be removed
-  double get xLayouterOffsetFromParentTop =>
+  double get xyLayoutersOffsetFromParentTop =>
       math.max(_yToXLayouterMinTopGap, _options.xTopMinTicksHeight);
 
   double get xLayouterOffsetFromLeft => _yToXLayouterMinLeftGap;
@@ -171,7 +167,7 @@ class SimpleChartLayouter {
   double get yRightTicksWidth =>
       math.max(_options.yRightMinTicksWidth, xLayouter._gridStepWidth / 2);
 
-  double get vertGridLinesFromY => xLayouterOffsetFromParentTop;
+  double get vertGridLinesFromY => xyLayoutersOffsetFromParentTop;
 
   double get vertGridLinesToY =>
       horizGridLineYs.reduce(math.max) + _options.xBottomMinTicksHeight;
@@ -210,8 +206,8 @@ class YLayouter {
 
   double _yLabelsContainerWidth;
   double _yLabelsMaxHeight;
-  double _yAxisOffsetMinFromParentTop;
-  double _yAxisOffsetMinFromParentBottom;
+  double _yAxisOffsetMinFromTop;
+  double _yAxisOffsetMinFromBottom;
   double _yAxisAvailableHeight;
 
   /// Constructor gives this layouter access to it's
@@ -224,17 +220,17 @@ class YLayouter {
   YLayouter({
     SimpleChartLayouter chartLayouter,
     double availableHeight,
-    double yAxisOffsetMinFromParentTop,
-    double yAxisOffsetMinFromParentBottom
+    double yAxisOffsetMinFromTop,
+    double yAxisOffsetMinFromBottom
 
   }) {
     _chartLayouter = chartLayouter;
     _availableHeight = availableHeight;
 
-    _yAxisOffsetMinFromParentTop = yAxisOffsetMinFromParentTop;
-    _yAxisOffsetMinFromParentBottom = yAxisOffsetMinFromParentBottom;
+    _yAxisOffsetMinFromTop = yAxisOffsetMinFromTop;
+    _yAxisOffsetMinFromBottom = yAxisOffsetMinFromBottom;
     _yAxisAvailableHeight =
-        _availableHeight - _yAxisOffsetMinFromParentTop - _yAxisOffsetMinFromParentBottom;
+        _availableHeight - _yAxisOffsetMinFromTop - _yAxisOffsetMinFromBottom;
   }
 
   /// Lays out the the area containing the Y axis.
@@ -242,8 +238,8 @@ class YLayouter {
   layout() {
     // the scale is given by (adjusted) available height, known at
     // construction time.
-    double toScaleMin = _yAxisOffsetMinFromParentTop + _yAxisAvailableHeight + _chartLayouter.legendHY; // here we are subtracting legendY in both vars. so remove one
-    double toScaleMax = _yAxisOffsetMinFromParentTop + _chartLayouter.legendHY;
+    double toScaleMin = _yAxisOffsetMinFromTop + _yAxisAvailableHeight + _chartLayouter.legendHY; // here we are subtracting legendY in both vars. so remove one
+    double toScaleMax = _yAxisOffsetMinFromTop + _chartLayouter.legendHY;
 
     if (_chartLayouter._options.doManualLayoutUsingYLabels) {
       layoutManually(toScaleMin: toScaleMin, toScaleMax: toScaleMax);
@@ -334,8 +330,8 @@ class YLayouter {
       ", _availableHeight = ${_availableHeight}" +
           ", _yLabelsContainerWidth = ${_yLabelsContainerWidth}" +
           ", _yLabelsMaxHeight = ${_yLabelsMaxHeight}" +
-          ", _yAxisOffsetMinFromParentTop = ${_yAxisOffsetMinFromParentTop}" +
-          ", _yAxisOffsetMinFromParentBottom = ${_yAxisOffsetMinFromParentBottom}" +
+          ", _yAxisOffsetMinFromTop = ${_yAxisOffsetMinFromTop}" +
+          ", _yAxisOffsetMinFromBottom = ${_yAxisOffsetMinFromBottom}" +
           ", _yAxisAvailableHeight = ${_yAxisAvailableHeight}"
     ;
   }
