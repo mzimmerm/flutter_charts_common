@@ -41,13 +41,7 @@ class SimpleChartLayouter {
   List<double> vertGridLineXs = new List();
   List<double> horizGridLineYs = new List();
 
-  /* todo -1 remove
-  List<double> labelXs = new List();
-  List<double> labelYs = new List();
-*/
-
-
-
+  // todo 0 document
   double _yLabelsContainerWidth;
   double _yLabelsMaxHeight;
 
@@ -87,7 +81,7 @@ class SimpleChartLayouter {
 
     _yLabelsContainerWidth = yLayouterFirst._yLabelsContainerWidth;
     _yLabelsMaxHeight = yLayouterFirst._yLabelsMaxHeight;
-    
+
     this.yLayouter = yLayouterFirst;
 
     // ### 2. Knowing width required by YLayouter, we can layout X labels and grid.
@@ -144,12 +138,6 @@ class SimpleChartLayouter {
     horizGridLineYs =
         yOutputs.map((var output) => output.horizGridLineY).toList();
 
-    /* todo -1 remove
-    // todo 00 how is this used?
-    labelXs = xOutputs.map((var output) => output.labelX).toList();
-
-    labelYs = yOutputs.map((var output) => output.labelY).toList();
-    */
   }
 
   // todo -1 surely more vars can be removed
@@ -232,13 +220,13 @@ class YLayouter {
   layout() {
     // the scale is given by (adjusted) available height, known at
     // construction time.
-    double toScaleMin = _yAxisOffsetMinFromTop + _yAxisAvailableHeight + _chartLayouter.legendHY; // here we are subtracting legendY in both vars. so remove one
-    double toScaleMax = _yAxisOffsetMinFromTop + _chartLayouter.legendHY;
+    double yAxisInParentMin = _yAxisOffsetMinFromTop + _yAxisAvailableHeight + _chartLayouter.legendHY; // here we are subtracting legendY in both vars. so remove one
+    double yAxisInParentMax = _yAxisOffsetMinFromTop + _chartLayouter.legendHY;
 
     if (_chartLayouter._options.doManualLayoutUsingYLabels) {
-      layoutManually(toScaleMin: toScaleMin, toScaleMax: toScaleMax);
+      layoutManually(yAxisInParentMin: yAxisInParentMin, yAxisInParentMax: yAxisInParentMax);
     } else {
-      layoutAutomatically(toScaleMin: toScaleMin, toScaleMax: toScaleMax);
+      layoutAutomatically(yAxisInParentMin: yAxisInParentMin, yAxisInParentMax: yAxisInParentMax);
     }
     _yLabelsContainerWidth = outputs
         .map((var output) => output.painter)
@@ -252,7 +240,7 @@ class YLayouter {
   }
 
   /// Manually layout Y axis by evenly dividing available height to all Y labels.
-  void layoutManually({double toScaleMin, double toScaleMax}) {
+  void layoutManually({double yAxisInParentMin, double yAxisInParentMax}) {
 
     List flatData = _chartLayouter._data.dataRows.expand((i) => i).toList();
     var dataRange = new Interval(
@@ -260,7 +248,7 @@ class YLayouter {
 
     List<num> yLabels = _chartLayouter._data.yLabels;
 
-    Interval yAxisRange = new Interval(toScaleMin, toScaleMax);
+    Interval yAxisRange = new Interval(yAxisInParentMin, yAxisInParentMax);
 
     double gridStepHeight = (yAxisRange.max - yAxisRange.min) / (yLabels.length - 1);
 
@@ -273,8 +261,8 @@ class YLayouter {
     var labelScaler = new LabelScalerFormatter(
         dataRange: dataRange,
         labeValues: yLabelsDividedInYAxisRange,
-        toScaleMin: toScaleMin,
-        toScaleMax: toScaleMax,
+        toScaleMin: yAxisInParentMin,
+        toScaleMax: yAxisInParentMax,
         chartOptions: _chartLayouter._options);
 
     labelScaler.setLabelValuesForManualLayout( labelValues: yLabels, scaledLabelValues: yLabelsDividedInYAxisRange);
@@ -286,7 +274,7 @@ class YLayouter {
 
   /// Generate labels from data, and auto layout
   /// Y axis according to data range, labels range, and display range
-  void layoutAutomatically({double toScaleMin, double toScaleMax}) {
+  void layoutAutomatically({double yAxisInParentMin, double yAxisInParentMax}) {
 
     List flatData = _chartLayouter._data.dataRows.expand((i) => i).toList();
 
@@ -295,8 +283,8 @@ class YLayouter {
 
     // revert toScaleMin/Max to accomodate y axis starting from top
     LabelScalerFormatter labelScaler = range.makeLabelsFromDataOnScale(
-        toScaleMin: toScaleMin,
-        toScaleMax: toScaleMax
+        toScaleMin: yAxisInParentMin,
+        toScaleMax: yAxisInParentMax
     );
 
     _commonLayout(labelScaler);
