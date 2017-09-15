@@ -98,7 +98,7 @@ class SimpleChartLayouter {
     var xLayouter = new XLayouter(
         chartLayouter: this,
         // todo 1 add padding, from options
-        availableWidth: chartArea.width - xLayouterOffsetFromLeft);
+        availableWidth: chartArea.width - xLayouterFromAreaLeft);
 
     print("   ### XLayouter");
     xLayouter.layout();
@@ -107,8 +107,8 @@ class SimpleChartLayouter {
     xOutputs = xLayouter.outputs.map((var output) {
       var xOutput = new XLayouterOutput();
       xOutput.painter = output.painter;
-      xOutput.vertGridLineX = xLayouterOffsetFromLeft + output.vertGridLineX;
-      xOutput.labelX = xLayouterOffsetFromLeft + output.labelX;
+      xOutput.vertGridLineX = xLayouterFromAreaLeft + output.vertGridLineX;
+      xOutput.labelX = xLayouterFromAreaLeft + output.labelX;
       return xOutput;
     }).toList();
 
@@ -156,7 +156,7 @@ class SimpleChartLayouter {
   double get xyLayoutersOffsetFromParentTop =>
       math.max(_yLabelsMaxHeight / 2 + legendHY, _options.xTopMinTicksHeight);
 
-  double get xLayouterOffsetFromLeft => _yLabelsContainerWidth;
+  double get xLayouterFromAreaLeft => _yLabelsContainerWidth;
 
   double get yRightTicksWidth =>
       math.max(_options.yRightMinTicksWidth, xLayouter._gridStepWidth / 2);
@@ -166,7 +166,7 @@ class SimpleChartLayouter {
   double get vertGridLinesToY =>
       horizGridLineYs.reduce(math.max) + _options.xBottomMinTicksHeight;
 
-  double get gridHorizontalLinesFromX => xLayouterOffsetFromLeft;
+  double get gridHorizontalLinesFromX => xLayouterFromAreaLeft;
 
   double get gridHorizontalLinesToX =>
       vertGridLineXs.reduce(math.max) + yRightTicksWidth;
@@ -433,10 +433,11 @@ class XLayouter {
       outputs.add(xOutput);
     }
 
+    // xlabels area without padding
     _xLabelsContainerHeight = outputs
         .map((var output) => output.painter)
         .map((painting.TextPainter painter) => painter.size.height)
-        .reduce(math.max) + 2 * _chartLayouter._options.xLabelsPadTB; // todo -1 padding is likely subtracted other place
+        .reduce(math.max);
   }
 }
 
