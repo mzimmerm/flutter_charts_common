@@ -46,19 +46,11 @@ class SimpleChartLayouter {
   List<double> labelYs = new List();
 */
 
-  /// XLayouter's grid cannot start on the left (x=0) of the available chart area,
-  /// it has to start at least a width of Y label left from the left.
-  ///
-  /// This member represents the forced minimum offset from the left
-  /// of the chart area, to the left of the grid.
-  double _yToXLayouterMinLeftGap;
 
-  /// XLayouter's grid cannot start on the top (y=0) of the available chart area,
-  /// it has to start at least half height of Y label down from the top.
-  ///
-  /// This member represents the forced minimum offset from top of the chart area,
-  /// to the top of the grid, within this parent layouter.
-  double _yToXLayouterMinTopGap;
+
+  double _yLabelsContainerWidth;
+  double _yLabelsMaxHeight;
+
 
   /// Simple Layouter for a simple flutter chart.
   ///
@@ -92,8 +84,10 @@ class SimpleChartLayouter {
     print("   ### YLayouter #1: before layout: ${yLayouterFirst}");
     yLayouterFirst.layout();
     print("   ### YLayouter #1: after layout: ${yLayouterFirst}");
-    _yToXLayouterMinLeftGap = yLayouterFirst._yLabelsContainerWidth;
-    _yToXLayouterMinTopGap = yLayouterFirst._yLabelsMaxHeight / 2 + legendHY;
+
+    _yLabelsContainerWidth = yLayouterFirst._yLabelsContainerWidth;
+    _yLabelsMaxHeight = yLayouterFirst._yLabelsMaxHeight;
+    
     this.yLayouter = yLayouterFirst;
 
     // ### 2. Knowing width required by YLayouter, we can layout X labels and grid.
@@ -160,9 +154,9 @@ class SimpleChartLayouter {
 
   // todo -1 surely more vars can be removed
   double get xyLayoutersOffsetFromParentTop =>
-      math.max(_yToXLayouterMinTopGap, _options.xTopMinTicksHeight);
+      math.max(_yLabelsMaxHeight / 2 + legendHY, _options.xTopMinTicksHeight);
 
-  double get xLayouterOffsetFromLeft => _yToXLayouterMinLeftGap;
+  double get xLayouterOffsetFromLeft => _yLabelsContainerWidth;
 
   double get yRightTicksWidth =>
       math.max(_options.yRightMinTicksWidth, xLayouter._gridStepWidth / 2);
