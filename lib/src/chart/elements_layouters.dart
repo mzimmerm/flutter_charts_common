@@ -85,7 +85,7 @@ class SimpleChartLayouter {
         chartLayouter: this,
         availableHeight: chartArea.height,
         yAxisOffsetMinFromParentTop: 0.0,
-        yAxisOffsetMinFromParentTopBottom: 0.0
+        yAxisOffsetMinFromParentBottom: 0.0
 
     );
 
@@ -121,15 +121,15 @@ class SimpleChartLayouter {
     //        on the bottom (which is not available for Y height)
     // First call to YLayouter provides how much width is left for XLayouter (grid and X axis)
 
-    // todo -1 remove vars yAxisOffsetMinFromParentTop yAxisOffsetMinFromParentTopBottom
+    // todo -1 remove vars yAxisOffsetMinFromParentTop yAxisOffsetMinFromParentBottom
     var yAxisOffsetMinFromParentTop = xLayouterOffsetFromParentTop;
-    var yAxisOffsetMinFromParentTopBottom = 2 * _options.xLabelsPadTB +
+    var yAxisOffsetMinFromParentBottom = 2 * _options.xLabelsPadTB +
         _options.xBottomMinTicksHeight;
     var yLayouter = new YLayouter(
         chartLayouter: this,
         availableHeight: chartArea.height - xLayouter._xLabelsContainerHeight - legendHY,
         yAxisOffsetMinFromParentTop: yAxisOffsetMinFromParentTop - legendHY, // todo -1 this should be additional offset from top of parent layouter
-        yAxisOffsetMinFromParentTopBottom: yAxisOffsetMinFromParentTopBottom
+        yAxisOffsetMinFromParentBottom: yAxisOffsetMinFromParentBottom
     );
 
     print("   ### YLayouter #2: before layout: ${yLayouter}");
@@ -211,7 +211,7 @@ class YLayouter {
   double _yLabelsContainerWidth;
   double _yLabelsMaxHeight;
   double _yAxisOffsetMinFromParentTop;
-  double _yAxisOffsetMinFromParentTopBottom;
+  double _yAxisOffsetMinFromParentBottom;
   double _yAxisAvailableHeight;
 
   /// Constructor gives this layouter access to it's
@@ -225,16 +225,16 @@ class YLayouter {
     SimpleChartLayouter chartLayouter,
     double availableHeight,
     double yAxisOffsetMinFromParentTop,
-    double yAxisOffsetMinFromParentTopBottom
+    double yAxisOffsetMinFromParentBottom
 
   }) {
     _chartLayouter = chartLayouter;
     _availableHeight = availableHeight;
 
     _yAxisOffsetMinFromParentTop = yAxisOffsetMinFromParentTop;
-    _yAxisOffsetMinFromParentTopBottom = yAxisOffsetMinFromParentTopBottom;
+    _yAxisOffsetMinFromParentBottom = yAxisOffsetMinFromParentBottom;
     _yAxisAvailableHeight =
-        _availableHeight - _yAxisOffsetMinFromParentTop - _yAxisOffsetMinFromParentTopBottom;
+        _availableHeight - _yAxisOffsetMinFromParentTop - _yAxisOffsetMinFromParentBottom;
   }
 
   /// Lays out the the area containing the Y axis.
@@ -335,7 +335,7 @@ class YLayouter {
           ", _yLabelsContainerWidth = ${_yLabelsContainerWidth}" +
           ", _yLabelsMaxHeight = ${_yLabelsMaxHeight}" +
           ", _yAxisOffsetMinFromParentTop = ${_yAxisOffsetMinFromParentTop}" +
-          ", _yAxisOffsetMinFromParentTopBottom = ${_yAxisOffsetMinFromParentTopBottom}" +
+          ", _yAxisOffsetMinFromParentBottom = ${_yAxisOffsetMinFromParentBottom}" +
           ", _yAxisAvailableHeight = ${_yAxisAvailableHeight}"
     ;
   }
