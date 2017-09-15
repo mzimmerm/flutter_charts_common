@@ -45,6 +45,8 @@ class SimpleChartLayouter {
   double _yLabelsContainerWidth;
   double _yLabelsMaxHeight;
 
+  ui.Size _chartArea;
+
 
   /// Simple Layouter for a simple flutter chart.
   ///
@@ -65,6 +67,7 @@ class SimpleChartLayouter {
       {ui.Size chartArea, ChartData chartData, ChartOptions chartOptions}) {
     _data = chartData;
     _options = chartOptions;
+    _chartArea = chartArea;
 
 
 
@@ -116,7 +119,7 @@ class SimpleChartLayouter {
 
     // the scale is given by (adjusted) available height, known at
     // construction time.
-    yAxisInParentMin = chartArea.height - xLayouter._xLabelsContainerHeight - (2 * _options.xLabelsPadTB + _options.xBottomMinTicksHeight); // here we are subtracting legendY in both vars. so remove one
+    yAxisInParentMin = chartArea.height - (_options.xBottomMinTicksHeight + xLayouter._xLabelsContainerHeight + 2 * _options.xLabelsPadTB ); // here we are subtracting legendY in both vars. so remove one
     yAxisInParentMax = xyLayoutersOffsetFromParentTop;
 
     var yLayouter = new YLayouter(
@@ -170,8 +173,7 @@ class SimpleChartLayouter {
 
   double get yLabelsOffsetFromLeft => _options.yLabelsPadLR;
 
-  double get xLabelsOffsetFromTop =>
-      yLayouter._availableHeight + _options.xBottomMinTicksHeight;
+  double get xLabelsContainerAbsY => _chartArea.height - (xLayouter._xLabelsContainerHeight + _options.xLabelsPadTB);
 
   double get yLabelsMaxHeight => yLayouter._yLabelsMaxHeight;
 
@@ -434,7 +436,7 @@ class XLayouter {
     _xLabelsContainerHeight = outputs
         .map((var output) => output.painter)
         .map((painting.TextPainter painter) => painter.size.height)
-        .reduce(math.max) + 2 * _chartLayouter._options.xLabelsPadTB;
+        .reduce(math.max) + 2 * _chartLayouter._options.xLabelsPadTB; // todo -1 padding is likely subtracted other place
   }
 }
 
