@@ -70,8 +70,8 @@ class SimpleChartLayouter {
     var yLayouterFirst = new YLayouter(
         chartLayouter: this,
         availableHeight: chartArea.height,
-        yAxisOffsetMinFromTop: 0.0,
-        yAxisOffsetMinFromBottom: 0.0
+        yAxisOffsetFromTop: 0.0,
+        yAxisOffsetFromBottom: 0.0
 
     );
 
@@ -112,8 +112,8 @@ class SimpleChartLayouter {
     var yLayouter = new YLayouter(
         chartLayouter: this,
         availableHeight: chartArea.height - xLayouter._xLabelsContainerHeight - legendHY,
-        yAxisOffsetMinFromTop: xyLayoutersOffsetFromParentTop - legendHY, // todo -1 this should be additional offset from top of parent layouter
-        yAxisOffsetMinFromBottom: 2 * _options.xLabelsPadTB + _options.xBottomMinTicksHeight
+        yAxisOffsetFromTop: xyLayoutersOffsetFromParentTop - legendHY, // todo -1 this should be additional offset from top of parent layouter
+        yAxisOffsetFromBottom: 2 * _options.xLabelsPadTB + _options.xBottomMinTicksHeight
     );
 
     print("   ### YLayouter #2: before layout: ${yLayouter}");
@@ -188,8 +188,8 @@ class YLayouter {
 
   double _yLabelsContainerWidth;
   double _yLabelsMaxHeight;
-  double _yAxisOffsetMinFromTop;
-  double _yAxisOffsetMinFromBottom;
+  double _yAxisOffsetFromTop;
+//  double _yAxisOffsetFromBottom;
   double _yAxisAvailableHeight;
 
   /// Constructor gives this layouter access to it's
@@ -202,17 +202,17 @@ class YLayouter {
   YLayouter({
     SimpleChartLayouter chartLayouter,
     double availableHeight,
-    double yAxisOffsetMinFromTop,
-    double yAxisOffsetMinFromBottom
+    double yAxisOffsetFromTop,
+    double yAxisOffsetFromBottom
 
   }) {
     _chartLayouter = chartLayouter;
     _availableHeight = availableHeight;
 
-    _yAxisOffsetMinFromTop = yAxisOffsetMinFromTop;
-    _yAxisOffsetMinFromBottom = yAxisOffsetMinFromBottom;
+    _yAxisOffsetFromTop = yAxisOffsetFromTop;
+//    _yAxisOffsetFromBottom = yAxisOffsetFromBottom;
     _yAxisAvailableHeight =
-        _availableHeight - _yAxisOffsetMinFromTop - _yAxisOffsetMinFromBottom;
+        _availableHeight - yAxisOffsetFromTop - yAxisOffsetFromBottom;
   }
 
   /// Lays out the the area containing the Y axis.
@@ -220,8 +220,8 @@ class YLayouter {
   layout() {
     // the scale is given by (adjusted) available height, known at
     // construction time.
-    double yAxisInParentMin = _yAxisOffsetMinFromTop + _yAxisAvailableHeight + _chartLayouter.legendHY; // here we are subtracting legendY in both vars. so remove one
-    double yAxisInParentMax = _yAxisOffsetMinFromTop + _chartLayouter.legendHY;
+    double yAxisInParentMin = _yAxisOffsetFromTop + _yAxisAvailableHeight + _chartLayouter.legendHY; // here we are subtracting legendY in both vars. so remove one
+    double yAxisInParentMax = _yAxisOffsetFromTop + _chartLayouter.legendHY;
 
     if (_chartLayouter._options.doManualLayoutUsingYLabels) {
       layoutManually(yAxisInParentMin: yAxisInParentMin, yAxisInParentMax: yAxisInParentMax);
@@ -312,8 +312,6 @@ class YLayouter {
       ", _availableHeight = ${_availableHeight}" +
           ", _yLabelsContainerWidth = ${_yLabelsContainerWidth}" +
           ", _yLabelsMaxHeight = ${_yLabelsMaxHeight}" +
-          ", _yAxisOffsetMinFromTop = ${_yAxisOffsetMinFromTop}" +
-          ", _yAxisOffsetMinFromBottom = ${_yAxisOffsetMinFromBottom}" +
           ", _yAxisAvailableHeight = ${_yAxisAvailableHeight}"
     ;
   }
