@@ -66,13 +66,18 @@ class SimpleChartLayouter {
     _data = chartData;
     _options = chartOptions;
 
-    // ### 1. First call to YLayouter provides how much width is left for XLayouter (grid and X axis)
-    var yLayouterFirst = new YLayouter(
-        chartLayouter: this,
-        availableHeight: chartArea.height,
-        yAxisOffsetFromTop: 0.0,
-        yAxisOffsetFromBottom: 0.0
 
+
+    // ### 1. First call to YLayouter provides how much width is left for XLayouter (grid and X axis)
+    // the scale is given by (adjusted) available height, known at
+    // construction time.
+    double yAxisInParentMin =  chartArea.height  - legendHY;
+    double yAxisInParentMax =  0.0;
+
+    var yLayouterFirst = new YLayouter(
+      chartLayouter: this,
+      yAxisInParentMin: yAxisInParentMin,
+      yAxisInParentMax: yAxisInParentMax,
     );
 
     print("   ### YLayouter #1: before layout: ${yLayouterFirst}");
@@ -109,11 +114,15 @@ class SimpleChartLayouter {
     //        on the bottom (which is not available for Y height)
     // First call to YLayouter provides how much width is left for XLayouter (grid and X axis)
 
+    // the scale is given by (adjusted) available height, known at
+    // construction time.
+    yAxisInParentMin = chartArea.height - xLayouter._xLabelsContainerHeight - (2 * _options.xLabelsPadTB + _options.xBottomMinTicksHeight); // here we are subtracting legendY in both vars. so remove one
+    yAxisInParentMax = xyLayoutersOffsetFromParentTop;
+
     var yLayouter = new YLayouter(
         chartLayouter: this,
-        availableHeight: chartArea.height - xLayouter._xLabelsContainerHeight - legendHY,
-        yAxisOffsetFromTop: xyLayoutersOffsetFromParentTop - legendHY, // todo -1 this should be additional offset from top of parent layouter
-        yAxisOffsetFromBottom: 2 * _options.xLabelsPadTB + _options.xBottomMinTicksHeight
+        yAxisInParentMin: yAxisInParentMin,
+        yAxisInParentMax: yAxisInParentMax,
     );
 
     print("   ### YLayouter #2: before layout: ${yLayouter}");
@@ -188,9 +197,10 @@ class YLayouter {
 
   double _yLabelsContainerWidth;
   double _yLabelsMaxHeight;
-  double _yAxisOffsetFromTop;
-//  double _yAxisOffsetFromBottom;
-  double _yAxisAvailableHeight;
+
+
+  double yAxisInParentMin;
+      double yAxisInParentMax;
 
   /// Constructor gives this layouter access to it's
   /// layouting parent [chartLayouter], giving it [availableHeight],
@@ -201,27 +211,21 @@ class YLayouter {
   ///
   YLayouter({
     SimpleChartLayouter chartLayouter,
-    double availableHeight,
-    double yAxisOffsetFromTop,
-    double yAxisOffsetFromBottom
+    double yAxisInParentMin,
+    double yAxisInParentMax,
 
   }) {
     _chartLayouter = chartLayouter;
-    _availableHeight = availableHeight;
+    _availableHeight = yAxisInParentMin - yAxisInParentMax;
+     this.yAxisInParentMin = yAxisInParentMin;
+     this.yAxisInParentMax = yAxisInParentMax;
 
-    _yAxisOffsetFromTop = yAxisOffsetFromTop;
-//    _yAxisOffsetFromBottom = yAxisOffsetFromBottom;
-    _yAxisAvailableHeight =
-        _availableHeight - yAxisOffsetFromTop - yAxisOffsetFromBottom;
   }
 
   /// Lays out the the area containing the Y axis.
   ///
   layout() {
-    // the scale is given by (adjusted) available height, known at
-    // construction time.
-    double yAxisInParentMin = _yAxisOffsetFromTop + _yAxisAvailableHeight + _chartLayouter.legendHY; // here we are subtracting legendY in both vars. so remove one
-    double yAxisInParentMax = _yAxisOffsetFromTop + _chartLayouter.legendHY;
+
 
     if (_chartLayouter._options.doManualLayoutUsingYLabels) {
       layoutManually(yAxisInParentMin: yAxisInParentMin, yAxisInParentMax: yAxisInParentMax);
@@ -311,8 +315,7 @@ class YLayouter {
     return
       ", _availableHeight = ${_availableHeight}" +
           ", _yLabelsContainerWidth = ${_yLabelsContainerWidth}" +
-          ", _yLabelsMaxHeight = ${_yLabelsMaxHeight}" +
-          ", _yAxisAvailableHeight = ${_yAxisAvailableHeight}"
+          ", _yLabelsMaxHeight = ${_yLabelsMaxHeight}"
     ;
   }
 }
