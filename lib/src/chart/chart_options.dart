@@ -51,10 +51,12 @@ class ChartOptions {
   final double yLabelsPadTB = 12.0;
   final double yLabelsPadLR = 12.0;
 
-  /// Side of the square used to tie color of lines/bars
-  /// to data series name (legend name).
-  double legendColorIndicatorWidth = 12.0;
+  /// Side of the square used to show color of lines/bars
+  /// together with data series name (legend name).
+  double legendColorIndicatorWidth = 20.0;
   double legendColorIndicatorPaddingLR = 1.0;
+  double legendContainerMarginLR = xLabelsPadLR;
+  double legendContainerMarginTB = 6;
 
   final String yLabelUnits = "";
 

@@ -1,4 +1,4 @@
-import 'dart:ui' as ui show Size, Offset;
+import 'dart:ui' as ui show Size, Offset, Rect, Paint;
 import 'dart:math' as math show max, min;
 
 import 'package:flutter/painting.dart' as painting show TextPainter;
@@ -88,9 +88,10 @@ class SimpleChartLayouter {
 
     legendOutputs = legendLayouter.outputs.map((var output) {
       var legendOutput = new LegendLayouterOutput();
-      legendOutput.painter = output.painter;
-      legendOutput.legendColorIndicatorX = output.legendColorIndicatorX;
-      legendOutput.legendX = output.legendX;
+      legendOutput.labelPainter = output.labelPainter;
+      legendOutput.indicatorPaint = output.indicatorPaint;
+      legendOutput.indicatorRect = output.indicatorRect;
+      legendOutput.labelOffset = output.labelOffset;
       return legendOutput;
     }).toList();
 
@@ -482,7 +483,6 @@ class XLayouterOutput {
   double labelX;
 }
 
-/////////////////////////////////////////// vvvvvvvvvvvvvvvvvvvvv
 /// Lays out the legend area for the chart.
 ///
 /// The legend area contains individual legend items. Each legend item
@@ -496,6 +496,9 @@ class LegendLayouter {
   SimpleChartLayouter _chartLayouter;
 
   double _availableWidth;
+
+  /// rectangle which contains the whole layed out area of legend.
+  ui.Rect rect;
 
   // ### calculated values
 
@@ -531,27 +534,44 @@ class LegendLayouter {
     // width of one color square + legend text.
     double legendItemWidth = _availableWidth / rowLegends.length;
 
-    var seq = new Iterable.generate(
+    var legendSeqs = new Iterable.generate(
         rowLegends.length, (i) => i); // 0 .. length-1
 
-    for (var xIndex in seq) {
+    // Layout legend core: for each row, create and position
+    //   - and indicator rectangle and it's paint
+    //   - lable painter
+    for (var index in legendSeqs) {
       var legendOutput = new LegendLayouterOutput();
-      legendOutput.painter = new LabelPainter(options: _chartLayouter._options)
-          .textPainterForLabel(rowLegends[xIndex]);
-      legendOutput.legendColorIndicatorX =
-          legendItemWidth * xIndex + indicatorToLegendPad;
-      legendOutput.legendX =
-          legendOutput.legendColorIndicatorX + colorIndicatorWidth +
-              indicatorToLegendPad;
+
+      legendOutput.labelPainter = new LabelPainter(options: options)
+          .textPainterForLabel(rowLegends[index]);
+
+      double indicatorX = legendItemWidth * index;
+      double indicatorWidth = options.legendColorIndicatorWidth;
+
+      // todo -1 add left margin of legend layouter
+      legendOutput.indicatorRect = new ui.Offset(indicatorX, 0.0)
+      & new ui.Size(indicatorWidth, indicatorWidth);
+
+      double labelX = indicatorX + indicatorWidth + indicatorToLegendPad;
+
+      // todo -1 add left margin of legend layouter
+      legendOutput.labelOffset = new ui.Offset(labelX, 0.0);
+
+      legendOutput.indicatorPaint = new ui.Paint();
+      legendOutput.indicatorPaint.color =
+      options.dataRowsColors[index % options.dataRowsColors.length];
+
       outputs.add(legendOutput);
     }
 
     // legend labels area without padding
     _rowLegendsContainerHeight = outputs
-        .map((var output) => output.painter)
+        .map((var output) => output.labelPainter)
         .map((painting.TextPainter painter) => painter.size.height)
         .fold(0.0, math.max);
   }
+
 }
 
 /// A Wrapper of [LegendLayouter] members that can be used by clients
@@ -560,16 +580,18 @@ class LegendLayouter {
 /// All positions are relative to the left of the container.
 class LegendLayouterOutput {
 
-  /// Painter configured to paint one label
-  painting.TextPainter painter;
+  /// Painter configured to paint each legend label
+  painting.TextPainter labelPainter;
 
-  ///  x offset of left point of the color quare
-  double legendColorIndicatorX;
+  ///  rectangle of the legend color square series indicator
+  ui.Rect indicatorRect;
 
-  ///  x offset of X label left point .
-  double legendX;
+  /// Paint used to paint the indicator
+  ui.Paint indicatorPaint;
+
+  ///  offset of legend label
+  ui.Offset labelOffset;
 }
-/////////////////////////////////////////^^^^^^^^^^^^^^^^
 
 
 /// Structural "backplane" model for chart layout.
