@@ -25,7 +25,8 @@ class SimpleChartLayouter {
   ChartData _data;
 
   LegendLayouter legendLayouter;
-  YLayouter yLayouter; // todo 00 make private - all manipulation through YLayouterOutput
+  YLayouter
+      yLayouter; // todo 00 make private - all manipulation through YLayouterOutput
   XLayouter xLayouter;
 
   /// This layouter stores positions in the [GuidingPoints] instance,
@@ -53,7 +54,6 @@ class SimpleChartLayouter {
 
   ui.Size _chartArea;
 
-
   /// Simple Layouter for a simple flutter chart.
   ///
   /// The simple flutter chart layout consists of only 2 major areas:
@@ -75,12 +75,9 @@ class SimpleChartLayouter {
     _options = chartOptions;
     _chartArea = chartArea;
 
-
     // ### 1. First layout the legends on top
     LegendLayouter legendLayouter = new LegendLayouter(
-        chartLayouter: this,
-        availableWidth: chartArea.width
-    );
+        chartLayouter: this, availableWidth: chartArea.width);
     legendLayouter.layout();
     _legendContainerHeight = legendLayouter._size.height;
 
@@ -95,14 +92,15 @@ class SimpleChartLayouter {
       return legendOutput;
     }).toList();
 
-    // ### 2. Next call to YLayouter provides how much width is left for XLayouter (grid and X axis)
-    // the scale is given by (adjusted) available height, known at
-    // construction time.
+    // ### 2. M a first call to YLayouter - this provides how much width
+    //        is left for the XLayouter (grid and X axis).
+    //        The y axis absolute min and max is not relevant in this first call.
+
 
     var yLayouterFirst = new YLayouter(
       chartLayouter: this,
-      yAxisInAreaMin: chartArea.height - _legendContainerHeight,
-      yAxisInAreaMax: 0.0,
+      yAxisAbsMin: chartArea.height - _legendContainerHeight,
+      yAxisAbsMax: 0.0,
     );
 
     print("   ### YLayouter #1: before layout: ${yLayouterFirst}");
@@ -135,21 +133,21 @@ class SimpleChartLayouter {
     }).toList();
 
     // ### 3. Second call to YLayouter is needed, as available height for Y
-    //        is only known after XLayouter provided height ov xLabels
-    //        on the bottom (which is not available for Y height)
-    // First call to YLayouter provides how much width is left for XLayouter (grid and X axis)
+    //        is only known after XLayouter provided height of xLabels
+    //        on the bottom .
+    //        The y axis absolute min and max are used to scale data values
+    //        to the y axis.
 
-    // the scale is given by (adjusted) available height, known at
-    // construction time.
-    double yAxisInAreaMin = chartArea.height -
-        (_options.xBottomMinTicksHeight + xLayouter._xLabelsContainerHeight +
+    double yAxisAbsMin = chartArea.height -
+        (_options.xBottomMinTicksHeight +
+            xLayouter._xLabelsContainerHeight +
             2 * _options.xLabelsPadTB);
-    double yAxisInAreaMax = xyLayoutersAbsY;
+    double yAxisAbsMax = xyLayoutersAbsY;
 
     var yLayouter = new YLayouter(
       chartLayouter: this,
-      yAxisInAreaMin: yAxisInAreaMin,
-      yAxisInAreaMax: yAxisInAreaMax,
+      yAxisAbsMin: yAxisAbsMin,
+      yAxisAbsMax: yAxisAbsMax,
     );
 
     print("   ### YLayouter #2: before layout: ${yLayouter}");
@@ -176,9 +174,9 @@ class SimpleChartLayouter {
   }
 
   // todo -1 surely more vars can be removed
-  double get xyLayoutersAbsY =>
-      math.max(_yLabelsMaxHeight / 2 + _legendContainerHeight,
-          _options.xTopMinTicksHeight);
+  double get xyLayoutersAbsY => math.max(
+      _yLabelsMaxHeight / 2 + _legendContainerHeight,
+      _options.xTopMinTicksHeight);
 
   double get xLayouterAbsX => _yLabelsContainerWidth;
 
@@ -199,10 +197,9 @@ class SimpleChartLayouter {
 
   double get xLabelsAbsY =>
       _chartArea.height -
-          (xLayouter._xLabelsContainerHeight + _options.xLabelsPadTB);
+      (xLayouter._xLabelsContainerHeight + _options.xLabelsPadTB);
 
   double get yLabelsMaxHeight => yLayouter._yLabelsMaxHeight;
-
 }
 
 /// Auto-layouter of the area containing Y axis.
@@ -224,9 +221,8 @@ class YLayouter {
   double _yLabelsContainerWidth;
   double _yLabelsMaxHeight;
 
-
-  double _yAxisInAreaMin;
-  double _yAxisInAreaMax;
+  double _yAxisAbsMin;
+  double _yAxisAbsMax;
 
   /// Constructor gives this layouter access to it's
   /// layouting Area [chartLayouter], giving it [availableHeight],
@@ -237,13 +233,12 @@ class YLayouter {
   ///
   YLayouter({
     SimpleChartLayouter chartLayouter,
-    double yAxisInAreaMin,
-    double yAxisInAreaMax,
-
+    double yAxisAbsMin,
+    double yAxisAbsMax,
   }) {
     _chartLayouter = chartLayouter;
-    _yAxisInAreaMin = yAxisInAreaMin;
-    _yAxisInAreaMax = yAxisInAreaMax;
+    _yAxisAbsMin = yAxisAbsMin;
+    _yAxisAbsMax = yAxisAbsMax;
   }
 
   /// Lays out the the area containing the Y axis.
@@ -255,9 +250,10 @@ class YLayouter {
       layoutAutomatically();
     }
     _yLabelsContainerWidth = outputs
-        .map((var output) => output.painter)
-        .map((painting.TextPainter painter) => painter.size.width)
-        .reduce(math.max) + 2 * _chartLayouter._options.yLabelsPadLR;
+            .map((var output) => output.painter)
+            .map((painting.TextPainter painter) => painter.size.width)
+            .reduce(math.max) +
+        2 * _chartLayouter._options.yLabelsPadLR;
 
     _yLabelsMaxHeight = outputs
         .map((var output) => output.painter)
@@ -268,15 +264,15 @@ class YLayouter {
   /// Manually layout Y axis by evenly dividing available height to all Y labels.
   void layoutManually() {
     List flatData = _chartLayouter._data.dataRows.expand((i) => i).toList();
-    var dataRange = new Interval(
-        flatData.reduce(math.min), flatData.reduce(math.max));
+    var dataRange =
+        new Interval(flatData.reduce(math.min), flatData.reduce(math.max));
 
     List<String> yLabels = _chartLayouter._data.yLabels;
 
-    Interval yAxisRange = new Interval(_yAxisInAreaMin, _yAxisInAreaMax);
+    Interval yAxisRange = new Interval(_yAxisAbsMin, _yAxisAbsMax);
 
-    double gridStepHeight = (yAxisRange.max - yAxisRange.min) /
-        (yLabels.length - 1);
+    double gridStepHeight =
+        (yAxisRange.max - yAxisRange.min) / (yLabels.length - 1);
 
     List<num> yLabelsDividedInYAxisRange = new List();
     var seq = new Iterable.generate(yLabels.length, (i) => i); // 0 .. length-1
@@ -287,8 +283,8 @@ class YLayouter {
     var labelScaler = new LabelScalerFormatter(
         dataRange: dataRange,
         labeValues: yLabelsDividedInYAxisRange,
-        toScaleMin: _yAxisInAreaMin,
-        toScaleMax: _yAxisInAreaMax,
+        toScaleMin: _yAxisAbsMin,
+        toScaleMax: _yAxisAbsMax,
         chartOptions: _chartLayouter._options);
 
     labelScaler.setLabelValuesForManualLayout(
@@ -311,9 +307,7 @@ class YLayouter {
 
     // revert toScaleMin/Max to accomodate y axis starting from top
     LabelScalerFormatter labelScaler = range.makeLabelsFromDataOnScale(
-        toScaleMin: _yAxisInAreaMin,
-        toScaleMax: _yAxisInAreaMax
-    );
+        toScaleMin: _yAxisAbsMin, toScaleMax: _yAxisAbsMax);
 
     _commonLayout(labelScaler);
   }
@@ -336,13 +330,10 @@ class YLayouter {
   }
 
   String toString() {
-    return
-      ", _yLabelsContainerWidth = ${_yLabelsContainerWidth}" +
-          ", _yLabelsMaxHeight = ${_yLabelsMaxHeight}"
-    ;
+    return ", _yLabelsContainerWidth = ${_yLabelsContainerWidth}" +
+        ", _yLabelsMaxHeight = ${_yLabelsMaxHeight}";
   }
 }
-
 
 /// A Wrapper of [YLayouter] members that can be used by clients
 /// to layout y labels container.
@@ -529,16 +520,15 @@ class LegendLayouter {
     double indicatorToLegendPad = options.legendColorIndicatorPaddingLR;
     double indicatorWidth = options.legendColorIndicatorWidth;
     double indicatorHeight = indicatorWidth;
-    double legendContainerMarginTB = options.legendContainerMarginTB;
-    double legendContainerMarginLR = options.legendContainerMarginLR;
-
+    double containerMarginTB = options.legendContainerMarginTB;
+    double containerMarginLR = options.legendContainerMarginLR;
 
     // Allocated width of one color square + legend text (one legend item)
     double legendItemWidth =
-        (_availableWidth - 2 * legendContainerMarginLR) / rowLegends.length;
+        (_availableWidth - 2 * containerMarginLR) / rowLegends.length;
 
-    var legendSeqs = new Iterable.generate(
-        rowLegends.length, (i) => i); // 0 .. length-1
+    var legendSeqs =
+        new Iterable.generate(rowLegends.length, (i) => i); // 0 .. length-1
 
     // First paint all legends, to figure out max height of legends to center all
     // legends label around common center.
@@ -548,17 +538,16 @@ class LegendLayouter {
     for (var index in legendSeqs) {
       painting.TextPainter p = new LabelPainter(options: options)
           .textPainterForLabel(rowLegends[index]);
-      legendMax = new ui.Size(
-          math.max(legendMax.width, p.width),
+      legendMax = new ui.Size(math.max(legendMax.width, p.width),
           math.max(legendMax.height, p.height));
     }
 
+    // Now we know legend container -size.height (width is unused)
     _size = new ui.Size(
         legendMax.width,
-        math.max(legendMax.height, indicatorHeight)
-            + 2 * legendContainerMarginTB
-    );
-      // Layout legend core: for each row, create and position
+        math.max(legendMax.height, indicatorHeight) +
+            2 * containerMarginTB);
+    // Layout legend core: for each row, create and position
     //   - and indicator rectangle and it's paint
     //   - lable painter
     for (var index in legendSeqs) {
@@ -567,13 +556,13 @@ class LegendLayouter {
       legendOutput.labelPainter = new LabelPainter(options: options)
           .textPainterForLabel(rowLegends[index]);
 
-      double indicatorX = legendItemWidth * index + legendContainerMarginLR;
+      double indicatorX = legendItemWidth * index + containerMarginLR;
 
       // height-wise center both indicatorRect and label around common
       // middle in  _size.height / 2
       double indicatorTop = (_size.height - indicatorHeight) / 2;
-      legendOutput.indicatorRect = new ui.Offset(indicatorX, indicatorTop)
-      & new ui.Size(indicatorWidth, indicatorHeight);
+      legendOutput.indicatorRect = new ui.Offset(indicatorX, indicatorTop) &
+          new ui.Size(indicatorWidth, indicatorHeight);
 
       double labelX = indicatorX + indicatorWidth + indicatorToLegendPad;
 
@@ -583,12 +572,11 @@ class LegendLayouter {
 
       legendOutput.indicatorPaint = new ui.Paint();
       legendOutput.indicatorPaint.color =
-      options.dataRowsColors[index % options.dataRowsColors.length];
+          options.dataRowsColors[index % options.dataRowsColors.length];
 
       outputs.add(legendOutput);
     }
   }
-
 }
 
 /// A Wrapper of [LegendLayouter] members that can be used by clients
@@ -596,7 +584,6 @@ class LegendLayouter {
 ///
 /// All positions are relative to the left of the container.
 class LegendLayouterOutput {
-
   // sequence in outputs
   int sequence;
 
@@ -611,9 +598,7 @@ class LegendLayouterOutput {
 
   ///  offset of legend label
   ui.Offset labelOffset;
-
 }
-
 
 /// Structural "backplane" model for chart layout.
 ///

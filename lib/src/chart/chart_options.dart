@@ -11,19 +11,23 @@ import 'random_chart_data.dart' show RandomChartData;
 /// related, may be overriden or adjusted by the chart auto-layout.
 class ChartOptions {
 
-  /// Defines how to layout chart.
+  /// Defines how to layout chart's Y labels: manually or using auto-layout,
+  /// and auto-creation and scaling of Y labels from data.
   ///
-  /// If `true`, a "manual" layout of Y axis is used.
-  /// This requires [yLabels] to be set. Each Y label has to be a interpretable as a number.
-  ///   - Current implementation splits Y axis into even number of sections, each yLabel level gets one line.
-  /// If `false`, a "auto" layout of Y axis is used.
-  ///   - Current implementation smartly creates Y labels from data so that little Y space is wasted.
-  ///   - `false` is default
-  ///   - `true` is supported as well
-  bool doManualLayoutUsingYLabels = true;
+  /// - If `true`, a "manual" layout of Y axis is used.
+  ///   This requires [ChartData.yLabels] to be defined.
+  ///   Labels can be Strings or numbers..
+  ///   Current layout implementation splits Y axis into even number of
+  ///   sections, each of [ChartData.yLabels] labels one horizontal guide line.
+  /// - If `false`, a "auto" layout of Y axis is used.
+  ///   - Current auto-layout implementation smartly creates Y labels
+  ///     from data on a limited number of points, so that Y labels do not
+  ///     crowd, and little Y space is wasted on top.
+
+  bool doManualLayoutUsingYLabels = false;
 
   /// Shows largest value on very top of the chart grid, to save space.
-  bool largestValuePointOnVeryTop = true; // false not supported
+  bool largestValuePointOnVeryTop = true; // false not supported yet
 
   /// Colors corresponding to each data row (series) in [ChartData].
   final List<ui.Color> dataRowsColors = new List<ui.Color>();
