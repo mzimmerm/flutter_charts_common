@@ -41,6 +41,8 @@ class RandomChartData extends ChartData {
 
     _generateYValues();
 
+    _generateRowLegends();
+
     _generateYLabels();
 
     validate();
@@ -64,6 +66,26 @@ class RandomChartData extends ChartData {
     if (_chartOptions.doManualLayoutUsingYLabels) {
       // yLabels = [ "0%", "25%", "50%", "75%", "100%"];
       yLabels = [ "NONE", "OK", "GOOD", "BETTER", "100%"];
+    }
+  }
+
+  void _generateRowLegends() {
+    int dataRowsCount = dataRows.length;
+
+    if (dataRowsCount >= 1) {
+      rowLegends.add("REDS");
+    }
+    if (dataRowsCount >= 2) {
+      rowLegends.add("GREENS");
+    }
+    if (dataRowsCount >= 3) {
+      rowLegends.add("BLUES");
+    }
+    if (dataRowsCount > 3) {
+      for (int i = 3; i < dataRowsCount; i++) {
+        int number = new math.Random().nextInt(100);
+        rowLegends.add("OTHER " + number.toString());
+      }
     }
   }
 

@@ -14,16 +14,19 @@ import '../util/util.dart';
 /// used for painting grid, labels, chart points etc.
 ///
 /// Creates a simple chart layouter and call all needed [layout] methods.
-
+///
+/// Terms used:
+///   - `absolute positions` refer to positions
+///      "in the coordinates of the full chart area given to the
+///      ChartPainter by the application.
+///   -
 class SimpleChartLayouter {
   ChartOptions _options;
   ChartData _data;
 
-  YLayouter
-  yLayouter; // todo 00 make private - all manipulation through YLayouterOutput
+  LegendLayouter legendLayouter;
+  YLayouter yLayouter; // todo 00 make private - all manipulation through YLayouterOutput
   XLayouter xLayouter;
-
-  double legendHY = 50.0;
 
   /// This layouter stores positions in the [GuidingPoints] instance,
   /// and uses its members as "guiding points" where it's child layouts should
@@ -31,17 +34,20 @@ class SimpleChartLayouter {
   GuidingPoints _guidingPoints;
 
   /// [xOutputs] and [yOutputs] hold on the X and Y Layouters output,
-  /// maintain all points in absolute positions
-  /// - positioned to full chart size, as provided by layout governing
-  /// chart's painter (in which this layouter is used).
+  /// maintain all points in absolute positions.
+  ///
+  /// Initialized in case the corresponding layouter does not run
+  /// (e.g. no X, Y axis, no legend)
   List<XLayouterOutput> xOutputs = new List();
   List<YLayouterOutput> yOutputs = new List();
-  LabelScalerFormatter yScaler;
+  List<LegendLayouterOutput> legendOutputs = new List();
+  LabelScalerFormatter yScaler; // todo -1 is this needed?
 
   List<double> vertGridLineXs = new List();
   List<double> horizGridLineYs = new List();
 
   // todo 0 document
+  double _legendContainerHeight = 0.0;
   double _yLabelsContainerWidth;
   double _yLabelsMaxHeight;
 
@@ -70,17 +76,32 @@ class SimpleChartLayouter {
     _chartArea = chartArea;
 
 
+    // ### 1. First layout the legends on top
+    LegendLayouter legendLayouter = new LegendLayouter(
+        chartLayouter: this,
+        availableWidth: chartArea.width
+    );
+    legendLayouter.layout();
+    _legendContainerHeight = legendLayouter._rowLegendsContainerHeight;
 
-    // ### 1. First call to YLayouter provides how much width is left for XLayouter (grid and X axis)
+    print(" _legendContainerHeight = ${_legendContainerHeight}");
+
+    legendOutputs = legendLayouter.outputs.map((var output) {
+      var legendOutput = new LegendLayouterOutput();
+      legendOutput.painter = output.painter;
+      legendOutput.legendColorIndicatorX = output.legendColorIndicatorX;
+      legendOutput.legendX = output.legendX;
+      return legendOutput;
+    }).toList();
+
+    // ### 2. Next call to YLayouter provides how much width is left for XLayouter (grid and X axis)
     // the scale is given by (adjusted) available height, known at
     // construction time.
-    double yAxisInAreaMin =  chartArea.height  - legendHY;
-    double yAxisInAreaMax =  0.0;
 
     var yLayouterFirst = new YLayouter(
       chartLayouter: this,
-      yAxisInAreaMin: yAxisInAreaMin,
-      yAxisInAreaMax: yAxisInAreaMax,
+      yAxisInAreaMin: chartArea.height - _legendContainerHeight,
+      yAxisInAreaMax: 0.0,
     );
 
     print("   ### YLayouter #1: before layout: ${yLayouterFirst}");
@@ -119,13 +140,15 @@ class SimpleChartLayouter {
 
     // the scale is given by (adjusted) available height, known at
     // construction time.
-    yAxisInAreaMin = chartArea.height - (_options.xBottomMinTicksHeight + xLayouter._xLabelsContainerHeight + 2 * _options.xLabelsPadTB ); // here we are subtracting legendY in both vars. so remove one
-    yAxisInAreaMax = xyLayoutersAbsY;
+    double yAxisInAreaMin = chartArea.height -
+        (_options.xBottomMinTicksHeight + xLayouter._xLabelsContainerHeight +
+            2 * _options.xLabelsPadTB);
+    double yAxisInAreaMax = xyLayoutersAbsY;
 
     var yLayouter = new YLayouter(
-        chartLayouter: this,
-        yAxisInAreaMin: yAxisInAreaMin,
-        yAxisInAreaMax: yAxisInAreaMax,
+      chartLayouter: this,
+      yAxisInAreaMin: yAxisInAreaMin,
+      yAxisInAreaMax: yAxisInAreaMax,
     );
 
     print("   ### YLayouter #2: before layout: ${yLayouter}");
@@ -149,12 +172,12 @@ class SimpleChartLayouter {
 
     horizGridLineYs =
         yOutputs.map((var output) => output.horizGridLineY).toList();
-
   }
 
   // todo -1 surely more vars can be removed
   double get xyLayoutersAbsY =>
-      math.max(_yLabelsMaxHeight / 2 + legendHY, _options.xTopMinTicksHeight);
+      math.max(_yLabelsMaxHeight / 2 + _legendContainerHeight,
+          _options.xTopMinTicksHeight);
 
   double get xLayouterAbsX => _yLabelsContainerWidth;
 
@@ -173,7 +196,9 @@ class SimpleChartLayouter {
 
   double get yLabelsAbsX => _options.yLabelsPadLR;
 
-  double get xLabelsAbsY => _chartArea.height - (xLayouter._xLabelsContainerHeight + _options.xLabelsPadTB);
+  double get xLabelsAbsY =>
+      _chartArea.height -
+          (xLayouter._xLabelsContainerHeight + _options.xLabelsPadTB);
 
   double get yLabelsMaxHeight => yLayouter._yLabelsMaxHeight;
 
@@ -216,15 +241,13 @@ class YLayouter {
 
   }) {
     _chartLayouter = chartLayouter;
-     _yAxisInAreaMin = yAxisInAreaMin;
-     _yAxisInAreaMax = yAxisInAreaMax;
+    _yAxisInAreaMin = yAxisInAreaMin;
+    _yAxisInAreaMax = yAxisInAreaMax;
   }
 
   /// Lays out the the area containing the Y axis.
   ///
   layout() {
-
-
     if (_chartLayouter._options.doManualLayoutUsingYLabels) {
       layoutManually();
     } else {
@@ -243,7 +266,6 @@ class YLayouter {
 
   /// Manually layout Y axis by evenly dividing available height to all Y labels.
   void layoutManually() {
-
     List flatData = _chartLayouter._data.dataRows.expand((i) => i).toList();
     var dataRange = new Interval(
         flatData.reduce(math.min), flatData.reduce(math.max));
@@ -252,12 +274,13 @@ class YLayouter {
 
     Interval yAxisRange = new Interval(_yAxisInAreaMin, _yAxisInAreaMax);
 
-    double gridStepHeight = (yAxisRange.max - yAxisRange.min) / (yLabels.length - 1);
+    double gridStepHeight = (yAxisRange.max - yAxisRange.min) /
+        (yLabels.length - 1);
 
     List<num> yLabelsDividedInYAxisRange = new List();
     var seq = new Iterable.generate(yLabels.length, (i) => i); // 0 .. length-1
     for (var yIndex in seq) {
-      yLabelsDividedInYAxisRange.add(yAxisRange.min + gridStepHeight * yIndex );
+      yLabelsDividedInYAxisRange.add(yAxisRange.min + gridStepHeight * yIndex);
     }
 
     var labelScaler = new LabelScalerFormatter(
@@ -267,7 +290,10 @@ class YLayouter {
         toScaleMax: _yAxisInAreaMax,
         chartOptions: _chartLayouter._options);
 
-    labelScaler.setLabelValuesForManualLayout( labelValues: yLabelsDividedInYAxisRange, scaledLabelValues: yLabelsDividedInYAxisRange, formattedYLabels:yLabels);
+    labelScaler.setLabelValuesForManualLayout(
+        labelValues: yLabelsDividedInYAxisRange,
+        scaledLabelValues: yLabelsDividedInYAxisRange,
+        formattedYLabels: yLabels);
     //labelScaler.scaleLabelInfos();
     //labelScaler.makeLabelsPresentable(); // todo -1 make private
 
@@ -277,7 +303,6 @@ class YLayouter {
   /// Generate labels from data, and auto layout
   /// Y axis according to data range, labels range, and display range
   void layoutAutomatically() {
-
     List flatData = _chartLayouter._data.dataRows.expand((i) => i).toList();
 
     Range range = new Range(
@@ -311,7 +336,7 @@ class YLayouter {
 
   String toString() {
     return
-          ", _yLabelsContainerWidth = ${_yLabelsContainerWidth}" +
+      ", _yLabelsContainerWidth = ${_yLabelsContainerWidth}" +
           ", _yLabelsMaxHeight = ${_yLabelsMaxHeight}"
     ;
   }
@@ -389,8 +414,7 @@ class XLayouter {
 
   /// Constructor gives this layouter access to it's
   /// layouting Area [chartLayouter], giving it [availableWidth],
-  /// which is (likely) the remainder of width after [YLayouter]
-  /// has taken whichever width it needs.
+  /// which is currently the full [chartLayouter._chartArea] width.
   ///
   /// This layouter uses the full [availableWidth], and takes as
   /// much height as needed for X labels to be painted.
@@ -457,6 +481,96 @@ class XLayouterOutput {
   ///  x offset of X label left point .
   double labelX;
 }
+
+/////////////////////////////////////////// vvvvvvvvvvvvvvvvvvvvv
+/// Lays out the legend area for the chart.
+///
+/// The legend area contains individual legend items. Each legend item
+/// has a color square and text, which describes one data row (that is,
+/// one data series).
+///
+/// Currently, each individual legend item is given the same size.
+/// This is not very efficient but simple, so legend text should be short
+class LegendLayouter {
+  /// The containing layouter.
+  SimpleChartLayouter _chartLayouter;
+
+  double _availableWidth;
+
+  // ### calculated values
+
+  /// Results of laying out the x axis labels.
+  List<LegendLayouterOutput> outputs = new List();
+
+  double _rowLegendsContainerHeight;
+
+  /// Constructor gives this layouter access to it's
+  /// layouting Area [chartLayouter], giving it [availableWidth],
+  /// which is currently the full width of the [chartArea].
+  ///
+  /// This layouter uses the full [availableWidth], and takes as
+  /// much height as needed for legend labels to be painted.
+  ///
+  LegendLayouter({
+    SimpleChartLayouter chartLayouter,
+    double availableWidth,
+  }) {
+    _chartLayouter = chartLayouter;
+    _availableWidth = availableWidth;
+  }
+
+  /// Lays out the legend area.
+  ///
+  /// Evenly divides available width to all legend items.
+  layout() {
+    ChartOptions options = _chartLayouter._options;
+    List<String> rowLegends = _chartLayouter._data.rowLegends;
+    double indicatorToLegendPad = options.legendColorIndicatorPaddingLR;
+    double colorIndicatorWidth = options.legendColorIndicatorWidth;
+
+    // width of one color square + legend text.
+    double legendItemWidth = _availableWidth / rowLegends.length;
+
+    var seq = new Iterable.generate(
+        rowLegends.length, (i) => i); // 0 .. length-1
+
+    for (var xIndex in seq) {
+      var legendOutput = new LegendLayouterOutput();
+      legendOutput.painter = new LabelPainter(options: _chartLayouter._options)
+          .textPainterForLabel(rowLegends[xIndex]);
+      legendOutput.legendColorIndicatorX =
+          legendItemWidth * xIndex + indicatorToLegendPad;
+      legendOutput.legendX =
+          legendOutput.legendColorIndicatorX + colorIndicatorWidth +
+              indicatorToLegendPad;
+      outputs.add(legendOutput);
+    }
+
+    // legend labels area without padding
+    _rowLegendsContainerHeight = outputs
+        .map((var output) => output.painter)
+        .map((painting.TextPainter painter) => painter.size.height)
+        .fold(0.0, math.max);
+  }
+}
+
+/// A Wrapper of [LegendLayouter] members that can be used by clients
+/// to layout the chart legend container.
+///
+/// All positions are relative to the left of the container.
+class LegendLayouterOutput {
+
+  /// Painter configured to paint one label
+  painting.TextPainter painter;
+
+  ///  x offset of left point of the color quare
+  double legendColorIndicatorX;
+
+  ///  x offset of X label left point .
+  double legendX;
+}
+/////////////////////////////////////////^^^^^^^^^^^^^^^^
+
 
 /// Structural "backplane" model for chart layout.
 ///

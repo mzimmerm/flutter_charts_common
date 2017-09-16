@@ -2,7 +2,17 @@ import 'dart:math' as math;
 
 class ChartData {
 
+  /// Data in rows.
+  ///
+  /// Each element of outer list represents one row.
+  /// Alternative name would be "data series".
   List<List<double>> dataRows = new List();
+
+  /// Provides legends for rows.
+  ///
+  /// One Legend String per row.
+  /// Alternative name would be "series names".
+  List<String> rowLegends = new List();
 
   /// Labels on independent (X) axis.
   ///
@@ -23,10 +33,18 @@ class ChartData {
   List<String> yLabels = new List();
 
   void validate() {
+    if (rowLegends.length > 0 && dataRows.length != rowLegends.length) {
+      throw new StateError(" If row legends are defined, their "
+          "number must be the same as number of data rows. "
+          " [dataRows length: ${dataRows.length}] "
+          "!= [rowLegends length: ${rowLegends.length}]. ");
+    }
     for (List<double> dataRow in dataRows) {
-      if (xLabels != null && dataRow.length != xLabels.length) {
-        throw new StateError(" dataRow.length != xLabels.length"
-            " [${dataRow.length}] != [${xLabels.length}]. ");
+      if (xLabels.length > 0 && dataRow.length != xLabels.length) {
+        throw new StateError(" If xLabels are defined, their "
+            "length must be the same as length of each dataRow"
+            " [dataRow length: ${dataRow.length}] "
+            "!= [xLabels length: ${xLabels.length}]. ");
       }
     }
   }
