@@ -82,7 +82,7 @@ class SimpleChartLayouter {
         availableWidth: chartArea.width
     );
     legendLayouter.layout();
-    _legendContainerHeight = legendLayouter._rowLegendsContainerHeight;
+    _legendContainerHeight = legendLayouter._size.height;
 
     print(" _legendContainerHeight = ${_legendContainerHeight}");
 
@@ -497,15 +497,13 @@ class LegendLayouter {
 
   double _availableWidth;
 
-  /// rectangle which contains the whole layed out area of legend.
-  ui.Rect rect;
+  /// size which contains the whole layed out area of legend (independet of offset).
+  ui.Size _size;
 
   // ### calculated values
 
   /// Results of laying out the x axis labels.
   List<LegendLayouterOutput> outputs = new List();
-
-  double _rowLegendsContainerHeight;
 
   /// Constructor gives this layouter access to it's
   /// layouting Area [chartLayouter], giving it [availableWidth],
@@ -529,15 +527,38 @@ class LegendLayouter {
     ChartOptions options = _chartLayouter._options;
     List<String> rowLegends = _chartLayouter._data.rowLegends;
     double indicatorToLegendPad = options.legendColorIndicatorPaddingLR;
-    double colorIndicatorWidth = options.legendColorIndicatorWidth;
+    double indicatorWidth = options.legendColorIndicatorWidth;
+    double indicatorHeight = indicatorWidth;
+    double legendContainerMarginTB = options.legendContainerMarginTB;
+    double legendContainerMarginLR = options.legendContainerMarginLR;
 
-    // width of one color square + legend text.
-    double legendItemWidth = _availableWidth / rowLegends.length;
+
+    // Allocated width of one color square + legend text (one legend item)
+    double legendItemWidth =
+        (_availableWidth - 2 * legendContainerMarginLR) / rowLegends.length;
 
     var legendSeqs = new Iterable.generate(
         rowLegends.length, (i) => i); // 0 .. length-1
 
-    // Layout legend core: for each row, create and position
+    // First paint all legends, to figure out max height of legends to center all
+    // legends label around common center.
+    // (todo 1 - is this ^^^ needed? can text of same font be diff. height)
+
+    var legendMax = ui.Size.zero;
+    for (var index in legendSeqs) {
+      painting.TextPainter p = new LabelPainter(options: options)
+          .textPainterForLabel(rowLegends[index]);
+      legendMax = new ui.Size(
+          math.max(legendMax.width, p.width),
+          math.max(legendMax.height, p.height));
+    }
+
+    _size = new ui.Size(
+        legendMax.width,
+        math.max(legendMax.height, indicatorHeight)
+            + 2 * legendContainerMarginTB
+    );
+      // Layout legend core: for each row, create and position
     //   - and indicator rectangle and it's paint
     //   - lable painter
     for (var index in legendSeqs) {
@@ -546,17 +567,19 @@ class LegendLayouter {
       legendOutput.labelPainter = new LabelPainter(options: options)
           .textPainterForLabel(rowLegends[index]);
 
-      double indicatorX = legendItemWidth * index;
-      double indicatorWidth = options.legendColorIndicatorWidth;
+      double indicatorX = legendItemWidth * index + legendContainerMarginLR;
 
-      // todo -1 add left margin of legend layouter
-      legendOutput.indicatorRect = new ui.Offset(indicatorX, 0.0)
-      & new ui.Size(indicatorWidth, indicatorWidth);
+      // height-wise center both indicatorRect and label around common
+      // middle in  _size.height / 2
+      double indicatorTop = (_size.height - indicatorHeight) / 2;
+      legendOutput.indicatorRect = new ui.Offset(indicatorX, indicatorTop)
+      & new ui.Size(indicatorWidth, indicatorHeight);
 
       double labelX = indicatorX + indicatorWidth + indicatorToLegendPad;
 
       // todo -1 add left margin of legend layouter
-      legendOutput.labelOffset = new ui.Offset(labelX, 0.0);
+      double labelTop = (_size.height - legendOutput.labelPainter.height) / 2;
+      legendOutput.labelOffset = new ui.Offset(labelX, labelTop);
 
       legendOutput.indicatorPaint = new ui.Paint();
       legendOutput.indicatorPaint.color =
@@ -564,12 +587,6 @@ class LegendLayouter {
 
       outputs.add(legendOutput);
     }
-
-    // legend labels area without padding
-    _rowLegendsContainerHeight = outputs
-        .map((var output) => output.labelPainter)
-        .map((painting.TextPainter painter) => painter.size.height)
-        .fold(0.0, math.max);
   }
 
 }
@@ -579,6 +596,9 @@ class LegendLayouter {
 ///
 /// All positions are relative to the left of the container.
 class LegendLayouterOutput {
+
+  // sequence in outputs
+  int sequence;
 
   /// Painter configured to paint each legend label
   painting.TextPainter labelPainter;
@@ -591,6 +611,7 @@ class LegendLayouterOutput {
 
   ///  offset of legend label
   ui.Offset labelOffset;
+
 }
 
 

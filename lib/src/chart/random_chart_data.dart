@@ -83,7 +83,8 @@ class RandomChartData extends ChartData {
     }
     if (dataRowsCount > 3) {
       for (int i = 3; i < dataRowsCount; i++) {
-        int number = new math.Random().nextInt(100);
+        // todo -1 this prooves we are painting over canvas, fix this.
+        int number = new math.Random().nextInt(10000);
         rowLegends.add("OTHER " + number.toString());
       }
     }

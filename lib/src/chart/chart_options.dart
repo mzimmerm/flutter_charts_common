@@ -55,8 +55,8 @@ class ChartOptions {
   /// together with data series name (legend name).
   double legendColorIndicatorWidth = 20.0;
   double legendColorIndicatorPaddingLR = 1.0;
-  double legendContainerMarginLR = xLabelsPadLR;
-  double legendContainerMarginTB = 6;
+  double legendContainerMarginLR = 12.0; // todo 1 make = xLabelsPadLR;
+  double legendContainerMarginTB = 6.0;
 
   final String yLabelUnits = "";
 
